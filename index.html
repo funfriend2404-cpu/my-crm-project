@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Acacia Fabrics — Customers</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Acacia">
+<meta name="theme-color" content="#20242C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -23,8 +28,10 @@
     --thread:#AD5A3E;
     --wholesale:#4C6E63;
     --error:#B5563C;
+    --success:#4C6E63;
   }
-  *{box-sizing:border-box}
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html{-webkit-text-size-adjust:100%;}
   body{margin:0;background:var(--ivory);color:var(--charcoal);font-family:'Inter',sans-serif;}
   h1,h2,h3,.display{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-0.01em;}
 
@@ -43,7 +50,7 @@
   .field label{display:block;font-size:13px;color:var(--ink-dim);margin-bottom:6px;}
   .field input, .field select, .field textarea{
     width:100%;padding:10px 12px;background:var(--charcoal);
-    border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:14px;
+    border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:16px;
   }
   .field input:focus, .field select:focus, .field textarea:focus{
     outline:none;border-color:var(--ochre);
@@ -52,6 +59,7 @@
     display:inline-flex;align-items:center;justify-content:center;gap:6px;
     padding:11px 20px;font-family:inherit;font-size:14px;font-weight:500;
     border:1px solid transparent;cursor:pointer;transition:background .15s ease;
+    min-height:44px;
   }
   .btn-primary{background:var(--ochre);color:var(--charcoal);}
   .btn-primary:hover{background:var(--ochre-dark);}
@@ -64,22 +72,44 @@
   /* ---------- App shell ---------- */
   #app-screen{display:none;min-height:100vh;}
   header.topbar{
-    display:flex;align-items:center;justify-content:space-between;gap:16px;
-    padding:18px 28px;border-bottom:1px solid var(--line-light);background:var(--ivory);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 28px;border-bottom:1px solid var(--line-light);background:var(--ivory);
     position:sticky;top:0;z-index:10;
   }
-  header.topbar .wordmark{font-size:20px;color:var(--charcoal);}
+  header.topbar .wordmark{font-size:20px;color:var(--charcoal);white-space:nowrap;}
   header.topbar .wordmark span{color:var(--ochre-dark);}
   .topbar-actions{display:flex;align-items:center;gap:10px;}
   #search-input{
     padding:9px 12px;border:1px solid var(--line-light);background:#fff;
-    font-family:inherit;font-size:14px;width:220px;
+    font-family:inherit;font-size:16px;width:220px;min-height:44px;
   }
   #search-input:focus{outline:none;border-color:var(--ochre);}
-  .signout-link{font-size:13px;color:var(--ink-dim);background:none;border:none;cursor:pointer;font-family:inherit;}
+  .signout-link{font-size:13px;color:var(--ink-dim);background:none;border:none;cursor:pointer;font-family:inherit;padding:8px;}
   .signout-link:hover{color:var(--charcoal);}
 
-  main{max-width:1180px;margin:0 auto;padding:28px;}
+  /* Overflow menu (desktop hidden by default, shown on mobile) */
+  .overflow-wrap{position:relative;display:none;}
+  #overflow-btn{
+    width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid var(--line-light);color:var(--charcoal);
+    font-size:18px;cursor:pointer;
+  }
+  #overflow-menu{
+    display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;
+    border:1px solid var(--line-light);box-shadow:0 8px 24px rgba(32,36,44,0.15);
+    min-width:180px;z-index:30;
+  }
+  #overflow-menu.open{display:block;}
+  #overflow-menu button{
+    display:flex;align-items:center;gap:10px;width:100%;padding:13px 16px;
+    background:none;border:none;text-align:left;font-family:inherit;font-size:14px;
+    color:var(--charcoal);cursor:pointer;min-height:44px;
+  }
+  #overflow-menu button:hover{background:var(--ivory-2);}
+  #overflow-menu button + button{border-top:1px solid var(--line-light);}
+  .desktop-only-actions{display:flex;align-items:center;gap:10px;}
+
+  main{max-width:1180px;margin:0 auto;padding:28px;padding-bottom:100px;}
   #empty-state{color:#8b8474;padding:60px 0;text-align:center;font-size:15px;}
   #loading-state{color:#8b8474;padding:60px 0;text-align:center;font-size:15px;}
 
@@ -89,10 +119,21 @@
   }
   .card{
     background:#fff;border:1px solid var(--line-light);cursor:pointer;
-    display:flex;flex-direction:column;overflow:hidden;
+    display:flex;flex-direction:column;overflow:hidden;position:relative;
     transition:transform .12s ease, box-shadow .12s ease;
   }
   .card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(32,36,44,0.08);}
+  .card-swipe-wrap{position:relative;overflow:hidden;}
+  .card-swipe-actions{
+    position:absolute;top:0;right:0;bottom:0;display:flex;
+  }
+  .card-swipe-actions button{
+    width:64px;border:none;color:#fff;font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .swipe-edit{background:var(--ochre-dark);}
+  .swipe-delete{background:var(--error);}
+  .card.swiped{transform:translateX(-128px) !important;}
   .card .photo{
     aspect-ratio:4/3;background:var(--ivory-2);display:flex;align-items:center;justify-content:center;
     overflow:hidden; position:relative;
@@ -115,8 +156,8 @@
   .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
   .footer-links{display:flex;gap:8px;}
   .icon-link{
-    width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    font-size:13px;color:#fff;flex:0 0 auto;text-decoration:none;
+    width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:14px;color:#fff;flex:0 0 auto;text-decoration:none;
   }
   .icon-link:hover{filter:brightness(0.9);}
   .reorder-card{cursor:default;}
@@ -125,11 +166,53 @@
     position:absolute;bottom:8px;right:8px;display:flex;gap:4px;
   }
   .reorder-arrow{
-    width:30px;height:30px;background:rgba(32,36,44,0.75);color:#fff;border:none;
-    font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    width:40px;height:40px;background:rgba(32,36,44,0.75);color:#fff;border:none;
+    font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
   }
   .reorder-arrow:hover:not(:disabled){background:var(--charcoal);}
   .reorder-arrow:disabled{opacity:.3;cursor:not-allowed;}
+
+  /* ---------- Floating Add button (mobile) ---------- */
+  #fab-add{
+    display:none;position:fixed;right:20px;bottom:24px;z-index:20;
+    width:56px;height:56px;border-radius:50%;background:var(--ochre);color:var(--charcoal);
+    border:none;font-size:26px;box-shadow:0 6px 18px rgba(32,36,44,0.3);cursor:pointer;
+    align-items:center;justify-content:center;
+  }
+  #fab-add:active{background:var(--ochre-dark);}
+
+  /* ---------- Pull to refresh ---------- */
+  #ptr-indicator{
+    display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;
+    color:#8b8474;font-size:13px;transition:height .15s ease;gap:8px;
+  }
+  #ptr-indicator.active{height:44px;}
+  #ptr-indicator i{transition:transform .2s ease;}
+  #ptr-indicator.ready i{transform:rotate(180deg);}
+
+  /* ---------- Skeleton loaders ---------- */
+  .skeleton-card{background:#fff;border:1px solid var(--line-light);overflow:hidden;}
+  .skeleton-photo{aspect-ratio:4/3;background:linear-gradient(100deg, var(--ivory-2) 30%, #e8e0cd 50%, var(--ivory-2) 70%);background-size:200% 100%;animation:shimmer 1.4s infinite;}
+  .skeleton-line{height:11px;background:linear-gradient(100deg, var(--ivory-2) 30%, #e8e0cd 50%, var(--ivory-2) 70%);background-size:200% 100%;animation:shimmer 1.4s infinite;margin:14px 16px;border-radius:2px;}
+  .skeleton-line.w60{width:60%;}
+  .skeleton-line.w40{width:40%;margin-top:-6px;}
+  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+  /* ---------- Toasts ---------- */
+  #toast-stack{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:8px;z-index:100;width:calc(100% - 32px);max-width:360px;
+    align-items:center;
+  }
+  .toast{
+    background:var(--charcoal);color:var(--ivory);padding:12px 18px;font-size:13.5px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.25);opacity:0;transform:translateY(10px);
+    transition:opacity .2s ease, transform .2s ease; display:flex;align-items:center;gap:8px;
+    width:100%;
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.toast-error{background:var(--error);}
+  .toast.toast-success i{color:#8FBF9F;}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -146,18 +229,22 @@
     padding:18px 22px;border-bottom:1px solid var(--line-light);
   }
   .modal-head h2{font-size:18px;margin:0;}
-  .modal-close{background:none;border:none;font-size:20px;color:#8b8474;cursor:pointer;line-height:1;}
+  .modal-close{background:none;border:none;font-size:22px;color:#8b8474;cursor:pointer;line-height:1;min-width:44px;min-height:44px;}
   .modal-body{padding:22px;}
   .modal-body .field{margin-bottom:14px;}
   .modal-body .field label{color:#8b8474;}
   .modal-body input, .modal-body select, .modal-body textarea{
-    background:#fff;border:1px solid var(--line-light);color:var(--charcoal);
+    background:#fff;border:1px solid var(--line-light);color:var(--charcoal);font-size:16px;
   }
   .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus{border-color:var(--ochre);}
   .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .modal-footer{
     display:flex;justify-content:space-between;align-items:center;gap:10px;
     padding:16px 22px;border-top:1px solid var(--line-light);
+  }
+  .modal-drag-handle{
+    display:none;width:36px;height:4px;background:var(--line-light);border-radius:2px;
+    margin:10px auto 0;
   }
 
   /* ---------- Photo gallery (modal) ---------- */
@@ -175,8 +262,8 @@
     font-size:9px;text-align:center;padding:2px 0;letter-spacing:.03em;text-transform:uppercase;
   }
   .gallery-thumb .remove-photo{
-    position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(32,36,44,0.75);
-    color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    position:absolute;top:2px;right:2px;width:22px;height:22px;background:rgba(32,36,44,0.75);
+    color:#fff;border:none;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
   }
   .gallery-thumb .remove-photo:hover{background:var(--error);}
   .gallery-add-tile{
@@ -186,8 +273,10 @@
   .gallery-add-tile:hover{border-color:var(--ochre);color:var(--ochre-dark);}
   .gallery-add-tile input{position:absolute;inset:0;opacity:0;cursor:pointer;}
   .gallery-empty-hint{font-size:12px;color:#8b8474;margin-bottom:14px;}
+  .gallery-compress-note{font-size:11px;color:#8b8474;margin:-8px 0 12px;display:none;align-items:center;gap:6px;}
+  .gallery-compress-note.active{display:flex;}
 
-  .link-danger{color:var(--error);background:none;border:none;font-size:13px;cursor:pointer;font-family:inherit;padding:0;}
+  .link-danger{color:var(--error);background:none;border:none;font-size:13px;cursor:pointer;font-family:inherit;padding:0;min-height:44px;}
   .link-danger:hover{text-decoration:underline;}
   .field-error{color:var(--error);font-size:12px;margin-top:10px;}
   .hint{font-size:12px;color:#8b8474;margin-top:-8px;margin-bottom:14px;}
@@ -197,7 +286,7 @@
     display:flex;align-items:center;justify-content:space-between;gap:10px;
     padding:9px 12px;border:1px solid var(--line-light);margin-bottom:8px;font-size:14px;
   }
-  .type-chip .remove-type{background:none;border:none;color:var(--error);font-size:16px;cursor:pointer;line-height:1;padding:0 4px;}
+  .type-chip .remove-type{background:none;border:none;color:var(--error);font-size:18px;cursor:pointer;line-height:1;padding:4px 8px;min-height:36px;}
   .type-chip .remove-type:hover{opacity:.7;}
 
   /* ---------- Settings modal ---------- */
@@ -212,16 +301,23 @@
   .settings-row p.label{font-size:14px;color:var(--charcoal);margin-bottom:2px;}
 
   @media (max-width:600px){
-    header.topbar{padding:12px 16px;flex-wrap:wrap;gap:10px;}
-    header.topbar .wordmark{font-size:18px;}
-    .topbar-actions{width:100%;flex-wrap:wrap;}
-    #search-input{width:100%;order:4;}
-    #add-btn{flex:1;}
-    main{padding:16px;}
-    .grid{grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:12px;}
+    header.topbar{padding:10px 14px;flex-wrap:nowrap;gap:8px;}
+    header.topbar .wordmark{font-size:17px;}
+    .topbar-actions{width:100%;display:flex;flex-wrap:nowrap;order:1;}
+    #search-input{flex:1;width:auto;min-width:0;}
+    .desktop-only-actions{display:none;}
+    .overflow-wrap{display:block;}
+    #add-btn{display:none;}
+    #fab-add{display:flex;}
+    main{padding:14px;padding-bottom:110px;}
+    .grid{grid-template-columns:1fr;gap:12px;}
+    .grid.two-col{grid-template-columns:repeat(2, 1fr);}
     .row-2{grid-template-columns:1fr;gap:0;}
-    .modal-backdrop{padding:0;align-items:stretch;}
-    .modal{max-width:none;max-height:100vh;height:100vh;border:none;}
+    .modal-backdrop{padding:0;align-items:flex-end;}
+    .modal{max-width:none;max-height:92vh;height:auto;border:none;border-radius:16px 16px 0 0;
+      animation:sheet-up .22s ease;}
+    @keyframes sheet-up{from{transform:translateY(30px);opacity:0.6;}to{transform:translateY(0);opacity:1;}}
+    .modal-drag-handle{display:block;}
     .modal-body{padding:18px;}
     .modal-footer{padding:12px 16px calc(12px + env(safe-area-inset-bottom));flex-wrap:wrap;}
     .modal-footer #cancel-btn, .modal-footer #save-btn{flex:1;}
@@ -229,6 +325,11 @@
     .modal-footer .spacer{display:none;}
     .btn{padding:12px 18px;font-size:15px;}
     .login-card{padding:32px 24px;}
+    .card-swipe-actions{display:flex;}
+  }
+  @media (min-width:601px){
+    .card-swipe-actions{display:none !important;}
+    .card.swiped{transform:none !important;}
   }
 </style>
 </head>
@@ -258,30 +359,50 @@
     <div class="wordmark display">Acacia <span>Fabrics</span></div>
     <div class="topbar-actions">
       <input id="search-input" type="text" placeholder="Search customers…" />
-      <button id="export-btn" class="btn btn-ghost">Export</button>
-      <button id="reorder-btn" class="btn btn-ghost">Reorder</button>
-      <button id="settings-btn" class="btn btn-ghost">Settings</button>
-      <button id="add-btn" class="btn btn-primary">+ Add customer</button>
-      <button id="signout-btn" class="signout-link">Sign out</button>
+      <div class="desktop-only-actions">
+        <button id="export-btn" class="btn btn-ghost">Export</button>
+        <button id="reorder-btn" class="btn btn-ghost">Reorder</button>
+        <button id="settings-btn" class="btn btn-ghost">Settings</button>
+        <button id="add-btn" class="btn btn-primary">+ Add customer</button>
+        <button id="signout-btn" class="signout-link">Sign out</button>
+      </div>
+      <div class="overflow-wrap">
+        <button id="overflow-btn" aria-label="More options"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+        <div id="overflow-menu">
+          <button id="m-export-btn"><i class="fa-solid fa-file-export"></i> Export CSV</button>
+          <button id="m-reorder-btn"><i class="fa-solid fa-arrow-up-arrow-down"></i> Reorder</button>
+          <button id="m-settings-btn"><i class="fa-solid fa-gear"></i> Settings</button>
+          <button id="m-signout-btn"><i class="fa-solid fa-right-from-bracket"></i> Sign out</button>
+        </div>
+      </div>
     </div>
   </header>
 
   <main>
-    <div id="loading-state">Loading customers…</div>
+    <div id="ptr-indicator"><i class="fa-solid fa-arrow-down"></i> <span id="ptr-label">Pull to refresh</span></div>
+    <div id="loading-state" style="display:none;">
+      <div class="grid" id="skeleton-grid"></div>
+    </div>
     <div id="empty-state" style="display:none;">No customers yet — add your first one.</div>
     <div id="grid" class="grid"></div>
   </main>
+
+  <button id="fab-add" aria-label="Add customer"><i class="fa-solid fa-plus"></i></button>
 </div>
+
+<div id="toast-stack"></div>
 
 <!-- ============ ADD / EDIT MODAL ============ -->
 <div id="modal-backdrop" class="modal-backdrop">
   <div class="modal">
+    <div class="modal-drag-handle"></div>
     <div class="modal-head">
       <h2 id="modal-title">Add customer</h2>
       <button class="modal-close" id="modal-close">&times;</button>
     </div>
     <div class="modal-body">
       <div id="gallery-strip" class="gallery-strip"></div>
+      <p class="gallery-compress-note" id="gallery-compress-note"><i class="fa-solid fa-circle-notch fa-spin"></i> Compressing photos…</p>
       <p class="gallery-empty-hint" id="gallery-empty-hint">Click a photo to make it the cover. The cover shows on the customer card.</p>
 
       <div class="field">
@@ -301,7 +422,7 @@
       <div class="row-2">
         <div class="field">
           <label for="f-phone">Phone</label>
-          <input id="f-phone" type="text" />
+          <input id="f-phone" type="tel" />
         </div>
         <div class="field">
           <label for="f-telegram">Telegram</label>
@@ -357,6 +478,7 @@
 <!-- ============ MANAGE TYPES MODAL ============ -->
 <div id="types-modal-backdrop" class="modal-backdrop">
   <div class="modal" style="max-width:400px;">
+    <div class="modal-drag-handle"></div>
     <div class="modal-head">
       <h2>Manage customer types</h2>
       <button class="modal-close" id="types-modal-close">&times;</button>
@@ -381,6 +503,7 @@
 <!-- ============ SETTINGS MODAL ============ -->
 <div id="settings-modal-backdrop" class="modal-backdrop">
   <div class="modal" style="max-width:420px;">
+    <div class="modal-drag-handle"></div>
     <div class="modal-head">
       <h2>Settings</h2>
       <button class="modal-close" id="settings-modal-close">&times;</button>
@@ -425,6 +548,7 @@ let contacts = [];
 let customerTypes = ['retail', 'wholesale', 'vip'];
 let editingId = null;
 let reorderMode = false;
+let searchDebounceTimer = null;
 
 /* Gallery state for the add/edit modal.
    Each item: { id?: db id if already saved, file?: File if newly picked,
@@ -433,6 +557,21 @@ let galleryPhotos = [];
 let coverIndex = 0;
 
 const $ = (id) => document.getElementById(id);
+
+/* ---------- Toasts ---------- */
+function toast(message, type) {
+  const stack = $('toast-stack');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'error' ? ' toast-error' : type === 'success' ? ' toast-success' : '');
+  const icon = type === 'error' ? 'fa-circle-exclamation' : type === 'success' ? 'fa-circle-check' : 'fa-circle-info';
+  el.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHtml(message)}</span>`;
+  stack.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 250);
+  }, 2800);
+}
 
 /* ---------- Auth ---------- */
 async function checkSession() {
@@ -540,7 +679,7 @@ function renderTypesList() {
 
 async function removeType(type) {
   if (customerTypes.length <= 1) {
-    alert('You need at least one customer type.');
+    toast('You need at least one customer type.', 'error');
     return;
   }
   if (!confirm(`Remove "${capitalize(type)}" from the list?`)) return;
@@ -597,16 +736,45 @@ $('login-password').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') $('login-btn').click();
 });
 
-$('signout-btn').addEventListener('click', async () => {
+$('signout-btn').addEventListener('click', doSignOut);
+$('m-signout-btn').addEventListener('click', doSignOut);
+async function doSignOut() {
   await sb.auth.signOut();
   showLogin();
-});
+}
 
-/* ---------- Load & render customers ---------- */
-async function loadContacts() {
-  $('loading-state').style.display = 'block';
+/* ---------- Overflow menu (mobile) ---------- */
+$('overflow-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('overflow-menu').classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.overflow-wrap')) $('overflow-menu').classList.remove('open');
+});
+$('m-export-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); exportCsv(); });
+$('m-reorder-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); toggleReorder(); });
+$('m-settings-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); openSettings(); });
+
+/* ---------- Load & render customers (with skeletons + pull to refresh) ---------- */
+function renderSkeletons() {
+  const wrap = $('skeleton-grid');
+  wrap.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const s = document.createElement('div');
+    s.className = 'skeleton-card';
+    s.innerHTML = `<div class="skeleton-photo"></div><div class="skeleton-line w60"></div><div class="skeleton-line w40"></div>`;
+    wrap.appendChild(s);
+  }
+}
+
+async function loadContacts(opts) {
+  const silent = opts && opts.silent;
+  if (!silent) {
+    renderSkeletons();
+    $('loading-state').style.display = 'block';
+  }
   $('empty-state').style.display = 'none';
-  $('grid').innerHTML = '';
+  if (!silent) $('grid').innerHTML = '';
 
   const { data, error } = await sb
     .from('contacts')
@@ -619,11 +787,13 @@ async function loadContacts() {
   if (error) {
     $('empty-state').textContent = 'Could not load customers: ' + error.message;
     $('empty-state').style.display = 'block';
+    if (silent) toast('Could not refresh: ' + error.message, 'error');
     return;
   }
 
   contacts = data || [];
   renderGrid();
+  if (silent) toast('Refreshed', 'success');
 }
 
 function coverPhotoFor(contact) {
@@ -666,6 +836,15 @@ function facebookUrl(handle) {
   return `https://facebook.com/${h.replace(/^@/, '')}`;
 }
 
+function phoneTelUrl(phone) {
+  const digits = (phone || '').replace(/[^\d+]/g, '');
+  return `tel:${digits}`;
+}
+function phoneSmsUrl(phone) {
+  const digits = (phone || '').replace(/[^\d+]/g, '');
+  return `sms:${digits}`;
+}
+
 function renderGrid() {
   const q = $('search-input').value.trim().toLowerCase();
   const filtered = contacts.filter((c) => {
@@ -702,20 +881,18 @@ function renderGrid() {
     else if (ytdLabel) orderLine = `${ytdLabel} YTD`;
 
     const iconLinks = [
+      c.phone ? `<a href="${escapeAttr(phoneTelUrl(c.phone))}" class="icon-link" style="background:var(--charcoal)" title="Call" onclick="event.stopPropagation()"><i class="fa-solid fa-phone"></i></a>` : '',
       c.telegram_handle ? `<a href="${escapeAttr(telegramUrl(c.telegram_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#26A5E4" title="Telegram" onclick="event.stopPropagation()"><i class="fa-brands fa-telegram"></i></a>` : '',
       c.whatsapp_handle ? `<a href="${escapeAttr(whatsappUrl(c.whatsapp_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#25D366" title="WhatsApp" onclick="event.stopPropagation()"><i class="fa-brands fa-whatsapp"></i></a>` : '',
       c.facebook_handle ? `<a href="${escapeAttr(facebookUrl(c.facebook_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#1877F2" title="Facebook" onclick="event.stopPropagation()"><i class="fa-brands fa-facebook-f"></i></a>` : '',
       c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="icon-link" style="background:#AD5A3E" title="Map" onclick="event.stopPropagation()"><i class="fa-solid fa-location-dot"></i></a>` : ''
     ].join('');
 
-    const card = document.createElement('div');
-    card.className = 'card';
-    if (reorderMode) card.classList.add('reorder-card');
-    card.innerHTML = `
+    const cardInner = `
       <div class="photo">
         <div class="tier-strip" style="background:${tierColor}"></div>
         ${cover
-          ? `<img src="${escapeAttr(cover.public_url)}" alt="${escapeAttr(c.name)}" />`
+          ? `<img src="${escapeAttr(cover.public_url)}" alt="${escapeAttr(c.name)}" loading="lazy" />`
           : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>`
         }
         ${photos.length > 1 ? `
@@ -744,6 +921,21 @@ function renderGrid() {
         </div>
       </div>
     `;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'card-swipe-wrap';
+    wrap.innerHTML = `
+      <div class="card-swipe-actions">
+        <button class="swipe-edit" data-id="${c.id}" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>
+        <button class="swipe-delete" data-id="${c.id}" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    `;
+    const card = document.createElement('div');
+    card.className = 'card';
+    if (reorderMode) card.classList.add('reorder-card');
+    card.innerHTML = cardInner;
+    wrap.appendChild(card);
+
     if (reorderMode) {
       card.querySelectorAll('.reorder-arrow').forEach((btn) => {
         btn.addEventListener('click', (e) => {
@@ -752,18 +944,84 @@ function renderGrid() {
         });
       });
     } else {
-      card.addEventListener('click', () => openModal(c));
+      card.addEventListener('click', () => {
+        if (card.classList.contains('swiped')) { card.classList.remove('swiped'); return; }
+        openModal(c);
+      });
+      attachSwipeHandlers(card, c);
+      wrap.querySelector('.swipe-edit').addEventListener('click', (e) => { e.stopPropagation(); openModal(c); });
+      wrap.querySelector('.swipe-delete').addEventListener('click', (e) => { e.stopPropagation(); confirmDeleteFromCard(c); });
     }
-    grid.appendChild(card);
+    grid.appendChild(wrap);
   });
 }
 
-$('search-input').addEventListener('input', renderGrid);
+/* ---------- Swipe to reveal edit/delete (mobile) ---------- */
+function attachSwipeHandlers(card, contact) {
+  let startX = 0, startY = 0, currentX = 0, dragging = false, decided = false, isHorizontal = false;
+
+  card.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 600) return;
+    // close any other open swiped card
+    document.querySelectorAll('.card.swiped').forEach((el) => { if (el !== card) el.classList.remove('swiped'); });
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    currentX = 0;
+    dragging = true;
+    decided = false;
+    isHorizontal = false;
+  }, { passive: true });
+
+  card.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (!decided) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        isHorizontal = Math.abs(dx) > Math.abs(dy);
+        decided = true;
+      } else {
+        return;
+      }
+    }
+    if (!isHorizontal) return;
+    currentX = dx;
+    const base = card.classList.contains('swiped') ? -128 : 0;
+    let translate = base + dx;
+    translate = Math.max(-128, Math.min(0, translate));
+    card.style.transform = `translateX(${translate}px)`;
+  }, { passive: true });
+
+  card.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    card.style.transform = '';
+    if (!isHorizontal) return;
+    const wasOpen = card.classList.contains('swiped');
+    if (wasOpen) {
+      if (currentX > 40) card.classList.remove('swiped');
+    } else {
+      if (currentX < -40) card.classList.add('swiped');
+    }
+  });
+}
+
+function confirmDeleteFromCard(contact) {
+  if (!confirm(`Delete ${contact.name}? This cannot be undone.`)) return;
+  deleteContact(contact.id);
+}
+
+$('search-input').addEventListener('input', () => {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(renderGrid, 200);
+});
 
 /* ---------- Reorder mode ---------- */
-$('reorder-btn').addEventListener('click', () => {
+$('reorder-btn').addEventListener('click', toggleReorder);
+function toggleReorder() {
   reorderMode = !reorderMode;
-  $('reorder-btn').textContent = reorderMode ? 'Done' : 'Reorder';
+  const label = reorderMode ? 'Done' : 'Reorder';
+  $('reorder-btn').textContent = label;
   $('reorder-btn').classList.toggle('btn-primary', reorderMode);
   $('reorder-btn').classList.toggle('btn-ghost', !reorderMode);
   if (reorderMode) {
@@ -773,7 +1031,7 @@ $('reorder-btn').addEventListener('click', () => {
     $('search-input').disabled = false;
   }
   renderGrid();
-});
+}
 
 async function ensureSortOrderAssigned() {
   // If nothing has a sort_order yet, assign one based on current order so
@@ -798,14 +1056,18 @@ async function moveCustomer(id, direction) {
   const aOrder = a.sort_order;
   const bOrder = b.sort_order;
 
+  // Optimistic UI: update locally + re-render immediately, sync in background.
   a.sort_order = bOrder;
   b.sort_order = aOrder;
   [contacts[index], contacts[swapIndex]] = [contacts[swapIndex], contacts[index]];
 
   renderGrid();
 
-  await sb.from('contacts').update({ sort_order: a.sort_order }).eq('id', a.id);
-  await sb.from('contacts').update({ sort_order: b.sort_order }).eq('id', b.id);
+  const [r1, r2] = await Promise.all([
+    sb.from('contacts').update({ sort_order: a.sort_order }).eq('id', a.id),
+    sb.from('contacts').update({ sort_order: b.sort_order }).eq('id', b.id)
+  ]);
+  if (r1.error || r2.error) toast('Could not save new order', 'error');
 }
 
 function escapeHtml(str) {
@@ -825,7 +1087,8 @@ function escapeCsv(val) {
 }
 
 /* ---------- CSV export ---------- */
-$('export-btn').addEventListener('click', () => {
+$('export-btn').addEventListener('click', exportCsv);
+function exportCsv() {
   const q = $('search-input').value.trim().toLowerCase();
   const filtered = contacts.filter((c) => {
     if (!q) return true;
@@ -863,13 +1126,15 @@ $('export-btn').addEventListener('click', () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-});
+  toast('CSV downloaded', 'success');
+}
 
 /* ---------- Settings modal ---------- */
-$('settings-btn').addEventListener('click', () => {
+$('settings-btn').addEventListener('click', openSettings);
+function openSettings() {
   $('settings-msg').style.display = 'none';
   $('settings-modal-backdrop').classList.add('open');
-});
+}
 $('settings-modal-close').addEventListener('click', closeSettingsModal);
 $('settings-modal-done').addEventListener('click', closeSettingsModal);
 function closeSettingsModal() {
@@ -891,16 +1156,19 @@ $('reset-ytd-btn').addEventListener('click', async () => {
   if (error) {
     msg.style.color = 'var(--error)';
     msg.textContent = 'Could not reset: ' + error.message;
+    toast('Could not reset YTD totals', 'error');
   } else {
     msg.style.color = '#8b8474';
     msg.textContent = 'All YTD totals reset to $0.';
     contacts = contacts.map((c) => ({ ...c, ytd_total: 0 }));
     renderGrid();
+    toast('All YTD totals reset to $0', 'success');
   }
 });
 
 /* ---------- Modal: add / edit ---------- */
 $('add-btn').addEventListener('click', () => openModal(null));
+$('fab-add').addEventListener('click', () => openModal(null));
 $('modal-close').addEventListener('click', closeModal);
 $('cancel-btn').addEventListener('click', closeModal);
 
@@ -975,21 +1243,82 @@ function renderGallery() {
 
   const addTile = document.createElement('label');
   addTile.className = 'gallery-add-tile';
-  addTile.innerHTML = `+<input type="file" accept="image/*" multiple />`;
-  addTile.querySelector('input').addEventListener('change', (e) => {
-    Array.from(e.target.files || []).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        galleryPhotos.push({ file, url: ev.target.result, isNew: true });
-        renderGallery();
-      };
-      reader.readAsDataURL(file);
-    });
+  addTile.innerHTML = `+<input type="file" accept="image/*" multiple capture="environment" />`;
+  addTile.querySelector('input').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
+    if (!files.length) return;
+
+    $('gallery-compress-note').classList.add('active');
+    for (const file of files) {
+      try {
+        const compressed = await compressImage(file);
+        const url = await fileToDataUrl(compressed);
+        galleryPhotos.push({ file: compressed, url, isNew: true });
+        renderGallery();
+      } catch (err) {
+        console.error('Compression failed, using original file:', err);
+        const url = await fileToDataUrl(file);
+        galleryPhotos.push({ file, url, isNew: true });
+        renderGallery();
+      }
+    }
+    $('gallery-compress-note').classList.remove('active');
   });
   strip.appendChild(addTile);
 
   $('gallery-empty-hint').style.display = galleryPhotos.length > 1 ? 'block' : 'none';
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => resolve(ev.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* Client-side image compression: downsize to a max dimension and re-encode
+   as JPEG before upload, so cellular uploads of full-res phone photos
+   (often 3-5MB) go much faster. Falls back to the original file on error. */
+function compressImage(file, maxDimension = 1600, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+      resolve(file);
+      return;
+    }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width <= maxDimension && height <= maxDimension) {
+        resolve(file);
+        return;
+      }
+      const scale = maxDimension / Math.max(width, height);
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob((blob) => {
+        if (!blob) { resolve(file); return; }
+        const newName = file.name.replace(/\.(png|jpe?g|webp|heic|heif)$/i, '') + '.jpg';
+        resolve(new File([blob], newName, { type: 'image/jpeg' }));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+    img.src = objectUrl;
+  });
 }
 
 function removeGalleryPhoto(i) {
@@ -1032,6 +1361,7 @@ $('save-btn').addEventListener('click', async () => {
 
   let contactId = editingId;
   let saveError = null;
+  const wasEditing = !!editingId;
 
   if (editingId) {
     const { error } = await sb.from('contacts').update(payload).eq('id', editingId);
@@ -1047,6 +1377,7 @@ $('save-btn').addEventListener('click', async () => {
     $('save-btn').textContent = 'Save';
     $('form-error').textContent = saveError.message;
     $('form-error').style.display = 'block';
+    toast('Could not save customer', 'error');
     return;
   }
 
@@ -1063,6 +1394,7 @@ $('save-btn').addEventListener('click', async () => {
   $('save-btn').disabled = false;
   $('save-btn').textContent = 'Save';
   closeModal();
+  toast(wasEditing ? 'Customer updated' : 'Customer added', 'success');
   loadContacts();
 });
 
@@ -1073,6 +1405,7 @@ async function uploadPhoto(contactId, file) {
   const { error: uploadError } = await sb.storage.from(STORAGE_BUCKET).upload(path, file);
   if (uploadError) {
     console.error('Photo upload failed:', uploadError.message);
+    toast('A photo failed to upload', 'error');
     return;
   }
 
@@ -1102,19 +1435,80 @@ async function syncCoverFlag(contactId) {
 $('delete-btn').addEventListener('click', async () => {
   if (!editingId) return;
   if (!confirm('Delete this customer? This cannot be undone.')) return;
+  const id = editingId;
+  closeModal();
+  await deleteContact(id);
+});
 
-  $('delete-btn').disabled = true;
-  const { error } = await sb.from('contacts').delete().eq('id', editingId);
-  $('delete-btn').disabled = false;
+async function deleteContact(id) {
+  // Optimistic UI: remove locally first, roll back on failure.
+  const prevContacts = contacts;
+  const removed = contacts.find((c) => c.id === id);
+  contacts = contacts.filter((c) => c.id !== id);
+  renderGrid();
+
+  const { error } = await sb.from('contacts').delete().eq('id', id);
 
   if (error) {
-    $('form-error').textContent = error.message;
-    $('form-error').style.display = 'block';
+    contacts = prevContacts;
+    renderGrid();
+    toast('Could not delete: ' + error.message, 'error');
     return;
   }
-  closeModal();
-  loadContacts();
-});
+  toast(removed ? `${removed.name} deleted` : 'Customer deleted', 'success');
+}
+
+/* ---------- Pull to refresh (mobile) ---------- */
+(function setupPullToRefresh() {
+  const main = document.querySelector('main');
+  const indicator = $('ptr-indicator');
+  const label = $('ptr-label');
+  let startY = 0, pulling = false, triggered = false;
+  const THRESHOLD = 70;
+
+  main.addEventListener('touchstart', (e) => {
+    if (window.scrollY > 0 || reorderMode) { pulling = false; return; }
+    startY = e.touches[0].clientY;
+    pulling = true;
+    triggered = false;
+  }, { passive: true });
+
+  main.addEventListener('touchmove', (e) => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0) {
+      indicator.classList.remove('active', 'ready');
+      indicator.style.height = '';
+      return;
+    }
+    const height = Math.min(70, dy * 0.5);
+    indicator.classList.add('active');
+    indicator.style.height = height + 'px';
+    if (height >= THRESHOLD - 5) {
+      indicator.classList.add('ready');
+      label.textContent = 'Release to refresh';
+      triggered = true;
+    } else {
+      indicator.classList.remove('ready');
+      label.textContent = 'Pull to refresh';
+      triggered = false;
+    }
+  }, { passive: true });
+
+  main.addEventListener('touchend', async () => {
+    if (!pulling) return;
+    pulling = false;
+    if (triggered) {
+      label.textContent = 'Refreshing…';
+      indicator.querySelector('i').style.display = 'none';
+      await loadContacts({ silent: true });
+    }
+    indicator.classList.remove('active', 'ready');
+    indicator.style.height = '';
+    indicator.querySelector('i').style.display = '';
+    label.textContent = 'Pull to refresh';
+  });
+})();
 
 /* ---------- Boot ---------- */
 checkSession();
