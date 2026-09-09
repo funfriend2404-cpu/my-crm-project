@@ -109,6 +109,17 @@
   .footer-links{display:flex;gap:10px;}
   .map-link{font-size:12px;color:var(--ochre-dark);text-decoration:none;}
   .map-link:hover{text-decoration:underline;}
+  .reorder-card{cursor:default;}
+  .reorder-card:hover{transform:none;box-shadow:none;}
+  .reorder-controls{
+    position:absolute;bottom:8px;right:8px;display:flex;gap:4px;
+  }
+  .reorder-arrow{
+    width:30px;height:30px;background:rgba(32,36,44,0.75);color:#fff;border:none;
+    font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .reorder-arrow:hover:not(:disabled){background:var(--charcoal);}
+  .reorder-arrow:disabled{opacity:.3;cursor:not-allowed;}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -204,6 +215,7 @@
     <div class="wordmark display">Acacia <span>Fabrics</span></div>
     <div class="topbar-actions">
       <input id="search-input" type="text" placeholder="Search customers…" />
+      <button id="reorder-btn" class="btn btn-ghost">Reorder</button>
       <button id="add-btn" class="btn btn-primary">+ Add customer</button>
       <button id="signout-btn" class="signout-link">Sign out</button>
     </div>
@@ -325,6 +337,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let contacts = [];
 let customerTypes = ['retail', 'wholesale', 'vip'];
 let editingId = null;
+let reorderMode = false;
 let pendingPhotoFile = null;
 let existingPhotoUrl = null;
 
@@ -507,6 +520,7 @@ async function loadContacts() {
   const { data, error } = await sb
     .from('contacts')
     .select('*, contact_photos(public_url, created_at)')
+    .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false });
 
   $('loading-state').style.display = 'none';
@@ -544,11 +558,12 @@ function renderGrid() {
   }
   $('empty-state').style.display = 'none';
 
-  filtered.forEach((c) => {
+  filtered.forEach((c, i) => {
     const cover = c.contact_photos && c.contact_photos.length ? c.contact_photos[0].public_url : null;
     const tierColor = colorForType(c.tier || 'retail');
     const card = document.createElement('div');
     card.className = 'card';
+    if (reorderMode) card.classList.add('reorder-card');
     card.innerHTML = `
       <div class="photo">
         <div class="tier-strip" style="background:${tierColor}"></div>
@@ -556,6 +571,12 @@ function renderGrid() {
           ? `<img src="${escapeAttr(cover)}" alt="${escapeAttr(c.name)}" />`
           : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>`
         }
+        ${reorderMode ? `
+          <div class="reorder-controls">
+            <button class="reorder-arrow" data-dir="up" ${i === 0 ? 'disabled' : ''}>▲</button>
+            <button class="reorder-arrow" data-dir="down" ${i === filtered.length - 1 ? 'disabled' : ''}>▼</button>
+          </div>
+        ` : ''}
       </div>
       <div class="body">
         <p class="name">${escapeHtml(c.name)}</p>
@@ -570,7 +591,16 @@ function renderGrid() {
         </div>
       </div>
     `;
-    card.addEventListener('click', () => openModal(c));
+    if (reorderMode) {
+      card.querySelectorAll('.reorder-arrow').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          moveCustomer(c.id, btn.dataset.dir);
+        });
+      });
+    } else {
+      card.addEventListener('click', () => openModal(c));
+    }
     grid.appendChild(card);
   });
 }
@@ -582,6 +612,54 @@ function telegramUrl(handle) {
 }
 
 $('search-input').addEventListener('input', renderGrid);
+
+/* ---------- Reorder mode ---------- */
+$('reorder-btn').addEventListener('click', () => {
+  reorderMode = !reorderMode;
+  $('reorder-btn').textContent = reorderMode ? 'Done' : 'Reorder';
+  $('reorder-btn').classList.toggle('btn-primary', reorderMode);
+  $('reorder-btn').classList.toggle('btn-ghost', !reorderMode);
+  if (reorderMode) {
+    $('search-input').value = '';
+    $('search-input').disabled = true;
+  } else {
+    $('search-input').disabled = false;
+  }
+  renderGrid();
+});
+
+async function ensureSortOrderAssigned() {
+  // If nothing has a sort_order yet, assign one based on current order so
+  // moving a card up/down has something concrete to swap.
+  const needsInit = contacts.some((c) => c.sort_order === null || c.sort_order === undefined);
+  if (!needsInit) return;
+  const updates = contacts.map((c, i) => ({ id: c.id, sort_order: i }));
+  contacts = contacts.map((c, i) => ({ ...c, sort_order: i }));
+  for (const u of updates) {
+    await sb.from('contacts').update({ sort_order: u.sort_order }).eq('id', u.id);
+  }
+}
+
+async function moveCustomer(id, direction) {
+  await ensureSortOrderAssigned();
+  const index = contacts.findIndex((c) => c.id === id);
+  const swapIndex = direction === 'up' ? index - 1 : index + 1;
+  if (swapIndex < 0 || swapIndex >= contacts.length) return;
+
+  const a = contacts[index];
+  const b = contacts[swapIndex];
+  const aOrder = a.sort_order;
+  const bOrder = b.sort_order;
+
+  a.sort_order = bOrder;
+  b.sort_order = aOrder;
+  [contacts[index], contacts[swapIndex]] = [contacts[swapIndex], contacts[index]];
+
+  renderGrid();
+
+  await sb.from('contacts').update({ sort_order: a.sort_order }).eq('id', a.id);
+  await sb.from('contacts').update({ sort_order: b.sort_order }).eq('id', b.id);
+}
 
 function escapeHtml(str) {
   const div = document.createElement('div');
