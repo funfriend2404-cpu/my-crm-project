@@ -99,9 +99,15 @@
   .card .photo img{width:100%;height:100%;object-fit:cover;display:block;}
   .card .photo svg{width:34px;height:34px;color:#c9c0a9;}
   .tier-strip{position:absolute;top:0;left:0;right:0;height:4px;}
+  .photo-count-badge{
+    position:absolute;bottom:8px;left:8px;background:rgba(32,36,44,0.75);color:#fff;
+    font-size:11px;padding:3px 8px;border-radius:2px;display:flex;align-items:center;gap:4px;
+  }
+  .photo-count-badge svg{width:12px;height:12px;color:#fff;}
   .card .body{padding:14px 16px 16px;}
   .card .name{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin:0 0 2px;}
   .card .company{font-size:12px;color:#8b8474;margin:0 0 8px;}
+  .card .last-order{font-size:11px;color:#9b9481;margin:-6px 0 8px;}
   .card .desc{font-size:13px;color:#5a5545;margin:0;line-height:1.4;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .tier-tag{display:inline-block;font-size:11px;padding:2px 8px;color:#fff;text-transform:capitalize;}
@@ -149,12 +155,34 @@
     display:flex;justify-content:space-between;align-items:center;gap:10px;
     padding:16px 22px;border-top:1px solid var(--line-light);
   }
-  .photo-preview{
-    width:100%;aspect-ratio:4/3;background:var(--ivory-2);margin-bottom:12px;
-    display:flex;align-items:center;justify-content:center;overflow:hidden;
+
+  /* ---------- Photo gallery (modal) ---------- */
+  .gallery-strip{
+    display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;
   }
-  .photo-preview img{width:100%;height:100%;object-fit:cover;}
-  .photo-preview svg{width:34px;height:34px;color:#c9c0a9;}
+  .gallery-thumb{
+    position:relative;flex:0 0 auto;width:84px;height:84px;background:var(--ivory-2);
+    border:2px solid transparent;cursor:pointer;overflow:hidden;
+  }
+  .gallery-thumb.is-cover{border-color:var(--ochre);}
+  .gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .gallery-thumb .cover-tag{
+    position:absolute;bottom:0;left:0;right:0;background:rgba(32,36,44,0.75);color:#fff;
+    font-size:9px;text-align:center;padding:2px 0;letter-spacing:.03em;text-transform:uppercase;
+  }
+  .gallery-thumb .remove-photo{
+    position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(32,36,44,0.75);
+    color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .gallery-thumb .remove-photo:hover{background:var(--error);}
+  .gallery-add-tile{
+    flex:0 0 auto;width:84px;height:84px;background:var(--ivory-2);border:1px dashed var(--line-light);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8b8474;font-size:26px;position:relative;
+  }
+  .gallery-add-tile:hover{border-color:var(--ochre);color:var(--ochre-dark);}
+  .gallery-add-tile input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .gallery-empty-hint{font-size:12px;color:#8b8474;margin-bottom:14px;}
+
   .link-danger{color:var(--error);background:none;border:none;font-size:13px;cursor:pointer;font-family:inherit;padding:0;}
   .link-danger:hover{text-decoration:underline;}
   .field-error{color:var(--error);font-size:12px;margin-top:10px;}
@@ -168,11 +196,22 @@
   .type-chip .remove-type{background:none;border:none;color:var(--error);font-size:16px;cursor:pointer;line-height:1;padding:0 4px;}
   .type-chip .remove-type:hover{opacity:.7;}
 
+  /* ---------- Settings modal ---------- */
+  .settings-section{margin-bottom:22px;}
+  .settings-section h3{font-size:14px;margin:0 0 10px;color:var(--charcoal);}
+  .settings-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:12px 0;border-top:1px solid var(--line-light);
+  }
+  .settings-row:first-of-type{border-top:none;}
+  .settings-row p{margin:0;font-size:13px;color:#5a5545;}
+  .settings-row p.label{font-size:14px;color:var(--charcoal);margin-bottom:2px;}
+
   @media (max-width:600px){
     header.topbar{padding:12px 16px;flex-wrap:wrap;gap:10px;}
     header.topbar .wordmark{font-size:18px;}
     .topbar-actions{width:100%;flex-wrap:wrap;}
-    #search-input{width:100%;order:3;}
+    #search-input{width:100%;order:4;}
     #add-btn{flex:1;}
     main{padding:16px;}
     .grid{grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));gap:12px;}
@@ -215,7 +254,9 @@
     <div class="wordmark display">Acacia <span>Fabrics</span></div>
     <div class="topbar-actions">
       <input id="search-input" type="text" placeholder="Search customers…" />
+      <button id="export-btn" class="btn btn-ghost">Export</button>
       <button id="reorder-btn" class="btn btn-ghost">Reorder</button>
+      <button id="settings-btn" class="btn btn-ghost">Settings</button>
       <button id="add-btn" class="btn btn-primary">+ Add customer</button>
       <button id="signout-btn" class="signout-link">Sign out</button>
     </div>
@@ -236,13 +277,9 @@
       <button class="modal-close" id="modal-close">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="photo-preview" id="photo-preview">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>
-      </div>
-      <div class="field">
-        <label for="f-photo">Photo</label>
-        <input id="f-photo" type="file" accept="image/*" />
-      </div>
+      <div id="gallery-strip" class="gallery-strip"></div>
+      <p class="gallery-empty-hint" id="gallery-empty-hint">Click a photo to make it the cover. The cover shows on the customer card.</p>
+
       <div class="field">
         <label for="f-name">Name *</label>
         <input id="f-name" type="text" />
@@ -273,6 +310,16 @@
           <input id="f-province" type="text" />
         </div>
         <div class="field"></div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-last-order">Last order date</label>
+          <input id="f-last-order" type="date" />
+        </div>
+        <div class="field">
+          <label for="f-ytd">YTD total ($)</label>
+          <input id="f-ytd" type="number" step="0.01" min="0" placeholder="0.00" />
+        </div>
       </div>
       <div class="field">
         <label for="f-notes">Description / notes</label>
@@ -317,6 +364,32 @@
   </div>
 </div>
 
+<!-- ============ SETTINGS MODAL ============ -->
+<div id="settings-modal-backdrop" class="modal-backdrop">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <h2>Settings</h2>
+      <button class="modal-close" id="settings-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="settings-section">
+        <h3>Year-end</h3>
+        <div class="settings-row">
+          <div>
+            <p class="label">Reset YTD totals</p>
+            <p>Sets every customer's YTD total back to $0. Last order dates are untouched. This cannot be undone.</p>
+          </div>
+        </div>
+        <button id="reset-ytd-btn" class="btn btn-ghost" style="border-color:var(--error);color:var(--error);">Reset all to $0</button>
+      </div>
+      <p id="settings-msg" class="hint" style="display:none;"></p>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button id="settings-modal-done" class="btn btn-primary">Done</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* =========================================================
    CONFIG — fill these in with YOUR Supabase project values.
@@ -338,8 +411,12 @@ let contacts = [];
 let customerTypes = ['retail', 'wholesale', 'vip'];
 let editingId = null;
 let reorderMode = false;
-let pendingPhotoFile = null;
-let existingPhotoUrl = null;
+
+/* Gallery state for the add/edit modal.
+   Each item: { id?: db id if already saved, file?: File if newly picked,
+                url: string for <img src>, storage_path?: string, isNew: bool } */
+let galleryPhotos = [];
+let coverIndex = 0;
 
 const $ = (id) => document.getElementById(id);
 
@@ -519,7 +596,7 @@ async function loadContacts() {
 
   const { data, error } = await sb
     .from('contacts')
-    .select('*, contact_photos(public_url, created_at)')
+    .select('*, contact_photos(id, public_url, storage_path, is_cover, created_at)')
     .order('sort_order', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false });
 
@@ -533,6 +610,27 @@ async function loadContacts() {
 
   contacts = data || [];
   renderGrid();
+}
+
+function coverPhotoFor(contact) {
+  const photos = contact.contact_photos || [];
+  if (!photos.length) return null;
+  const marked = photos.find((p) => p.is_cover);
+  return marked || photos[0];
+}
+
+function formatLastOrder(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return null;
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+function formatYtd(n) {
+  if (n === null || n === undefined || n === '') return null;
+  const num = Number(n);
+  if (isNaN(num)) return null;
+  return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 }
 
 function renderGrid() {
@@ -559,8 +657,17 @@ function renderGrid() {
   $('empty-state').style.display = 'none';
 
   filtered.forEach((c, i) => {
-    const cover = c.contact_photos && c.contact_photos.length ? c.contact_photos[0].public_url : null;
+    const photos = c.contact_photos || [];
+    const cover = coverPhotoFor(c);
     const tierColor = colorForType(c.tier || 'retail');
+
+    const lastOrderLabel = formatLastOrder(c.last_purchase_date);
+    const ytdLabel = formatYtd(c.ytd_total);
+    let orderLine = '';
+    if (lastOrderLabel && ytdLabel) orderLine = `Last order: ${lastOrderLabel} · ${ytdLabel} YTD`;
+    else if (lastOrderLabel) orderLine = `Last order: ${lastOrderLabel}`;
+    else if (ytdLabel) orderLine = `${ytdLabel} YTD`;
+
     const card = document.createElement('div');
     card.className = 'card';
     if (reorderMode) card.classList.add('reorder-card');
@@ -568,9 +675,15 @@ function renderGrid() {
       <div class="photo">
         <div class="tier-strip" style="background:${tierColor}"></div>
         ${cover
-          ? `<img src="${escapeAttr(cover)}" alt="${escapeAttr(c.name)}" />`
+          ? `<img src="${escapeAttr(cover.public_url)}" alt="${escapeAttr(c.name)}" />`
           : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>`
         }
+        ${photos.length > 1 ? `
+          <div class="photo-count-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="15" height="15" rx="2"/><path d="M8 5V3.5A1.5 1.5 0 019.5 2h9A1.5 1.5 0 0120 3.5v9a1.5 1.5 0 01-1.5 1.5H17"/></svg>
+            ${photos.length}
+          </div>
+        ` : ''}
         ${reorderMode ? `
           <div class="reorder-controls">
             <button class="reorder-arrow" data-dir="up" ${i === 0 ? 'disabled' : ''}>▲</button>
@@ -581,6 +694,7 @@ function renderGrid() {
       <div class="body">
         <p class="name">${escapeHtml(c.name)}</p>
         ${c.company_name ? `<p class="company">${escapeHtml(c.company_name)}</p>` : ''}
+        ${orderLine ? `<p class="last-order">${escapeHtml(orderLine)}</p>` : ''}
         ${c.notes ? `<p class="desc">${escapeHtml(c.notes)}</p>` : ''}
         <div class="card-footer">
           <span class="tier-tag" style="background:${tierColor}">${escapeHtml(c.tier || 'retail')}</span>
@@ -669,6 +783,86 @@ function escapeHtml(str) {
 function escapeAttr(str) {
   return (str || '').replace(/"/g, '&quot;');
 }
+function escapeCsv(val) {
+  const s = (val === null || val === undefined) ? '' : String(val);
+  if (/[",\n]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+/* ---------- CSV export ---------- */
+$('export-btn').addEventListener('click', () => {
+  const q = $('search-input').value.trim().toLowerCase();
+  const filtered = contacts.filter((c) => {
+    if (!q) return true;
+    return (
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.company_name || '').toLowerCase().includes(q) ||
+      (c.notes || '').toLowerCase().includes(q)
+    );
+  });
+
+  const headers = ['Name', 'Company', 'Type', 'Phone', 'Telegram', 'Province', 'Notes', 'Map link', 'Last order date', 'YTD total'];
+  const rows = filtered.map((c) => [
+    c.name || '',
+    c.company_name || '',
+    c.tier || '',
+    c.phone || '',
+    c.telegram_handle || '',
+    c.province || '',
+    c.notes || '',
+    c.map_link || '',
+    c.last_purchase_date || '',
+    (c.ytd_total === null || c.ytd_total === undefined) ? '' : c.ytd_total
+  ]);
+
+  const csv = [headers, ...rows].map((r) => r.map(escapeCsv).join(',')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `acacia-customers-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ---------- Settings modal ---------- */
+$('settings-btn').addEventListener('click', () => {
+  $('settings-msg').style.display = 'none';
+  $('settings-modal-backdrop').classList.add('open');
+});
+$('settings-modal-close').addEventListener('click', closeSettingsModal);
+$('settings-modal-done').addEventListener('click', closeSettingsModal);
+function closeSettingsModal() {
+  $('settings-modal-backdrop').classList.remove('open');
+}
+
+$('reset-ytd-btn').addEventListener('click', async () => {
+  if (!confirm('Reset every customer\'s YTD total to $0? This cannot be undone.')) return;
+  $('reset-ytd-btn').disabled = true;
+  $('reset-ytd-btn').textContent = 'Resetting…';
+
+  const { error } = await sb.from('contacts').update({ ytd_total: 0 }).not('id', 'is', null);
+
+  $('reset-ytd-btn').disabled = false;
+  $('reset-ytd-btn').textContent = 'Reset all to $0';
+
+  const msg = $('settings-msg');
+  msg.style.display = 'block';
+  if (error) {
+    msg.style.color = 'var(--error)';
+    msg.textContent = 'Could not reset: ' + error.message;
+  } else {
+    msg.style.color = '#8b8474';
+    msg.textContent = 'All YTD totals reset to $0.';
+    contacts = contacts.map((c) => ({ ...c, ytd_total: 0 }));
+    renderGrid();
+  }
+});
 
 /* ---------- Modal: add / edit ---------- */
 $('add-btn').addEventListener('click', () => openModal(null));
@@ -677,10 +871,23 @@ $('cancel-btn').addEventListener('click', closeModal);
 
 function openModal(contact) {
   editingId = contact ? contact.id : null;
-  pendingPhotoFile = null;
-  existingPhotoUrl = contact && contact.contact_photos && contact.contact_photos.length
-    ? contact.contact_photos[0].public_url
-    : null;
+
+  galleryPhotos = contact && contact.contact_photos
+    ? contact.contact_photos.map((p) => ({
+        id: p.id,
+        url: p.public_url,
+        storage_path: p.storage_path,
+        isNew: false
+      }))
+    : [];
+  coverIndex = 0;
+  if (contact) {
+    const idx = galleryPhotos.findIndex((p) => {
+      const orig = contact.contact_photos.find((cp) => cp.id === p.id);
+      return orig && orig.is_cover;
+    });
+    if (idx >= 0) coverIndex = idx;
+  }
 
   $('modal-title').textContent = contact ? 'Edit customer' : 'Add customer';
   $('f-name').value = contact ? contact.name || '' : '';
@@ -691,11 +898,12 @@ function openModal(contact) {
   $('f-province').value = contact ? contact.province || '' : '';
   $('f-notes').value = contact ? contact.notes || '' : '';
   $('f-maplink').value = contact ? contact.map_link || '' : '';
-  $('f-photo').value = '';
+  $('f-last-order').value = contact ? (contact.last_purchase_date || '') : '';
+  $('f-ytd').value = contact && contact.ytd_total !== null && contact.ytd_total !== undefined ? contact.ytd_total : '';
   $('form-error').style.display = 'none';
   $('delete-btn').style.display = contact ? 'inline-block' : 'none';
 
-  renderPhotoPreview(existingPhotoUrl);
+  renderGallery();
   $('modal-backdrop').classList.add('open');
 }
 
@@ -703,22 +911,57 @@ function closeModal() {
   $('modal-backdrop').classList.remove('open');
 }
 
-$('f-photo').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  pendingPhotoFile = file;
-  const reader = new FileReader();
-  reader.onload = (ev) => renderPhotoPreview(ev.target.result);
-  reader.readAsDataURL(file);
-});
+/* ---------- Gallery rendering ---------- */
+function renderGallery() {
+  const strip = $('gallery-strip');
+  strip.innerHTML = '';
 
-function renderPhotoPreview(url) {
-  const el = $('photo-preview');
-  if (url) {
-    el.innerHTML = `<img src="${escapeAttr(url)}" alt="" />`;
-  } else {
-    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>`;
-  }
+  galleryPhotos.forEach((photo, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'gallery-thumb' + (i === coverIndex ? ' is-cover' : '');
+    thumb.innerHTML = `
+      <img src="${escapeAttr(photo.url)}" alt="" />
+      ${i === coverIndex ? '<div class="cover-tag">Cover</div>' : ''}
+      <button class="remove-photo" data-index="${i}">&times;</button>
+    `;
+    thumb.addEventListener('click', (e) => {
+      if (e.target.closest('.remove-photo')) return;
+      coverIndex = i;
+      renderGallery();
+    });
+    thumb.querySelector('.remove-photo').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeGalleryPhoto(i);
+    });
+    strip.appendChild(thumb);
+  });
+
+  const addTile = document.createElement('label');
+  addTile.className = 'gallery-add-tile';
+  addTile.innerHTML = `+<input type="file" accept="image/*" multiple />`;
+  addTile.querySelector('input').addEventListener('change', (e) => {
+    Array.from(e.target.files || []).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        galleryPhotos.push({ file, url: ev.target.result, isNew: true });
+        renderGallery();
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  });
+  strip.appendChild(addTile);
+
+  $('gallery-empty-hint').style.display = galleryPhotos.length > 1 ? 'block' : 'none';
+}
+
+function removeGalleryPhoto(i) {
+  const photo = galleryPhotos[i];
+  if (!photo.isNew && !confirm('Remove this photo? This cannot be undone once saved.')) return;
+  galleryPhotos.splice(i, 1);
+  if (coverIndex >= galleryPhotos.length) coverIndex = Math.max(0, galleryPhotos.length - 1);
+  else if (coverIndex > i) coverIndex -= 1;
+  renderGallery();
 }
 
 $('save-btn').addEventListener('click', async () => {
@@ -734,6 +977,7 @@ $('save-btn').addEventListener('click', async () => {
   $('save-btn').disabled = true;
   $('save-btn').textContent = 'Saving…';
 
+  const ytdRaw = $('f-ytd').value.trim();
   const payload = {
     name,
     company_name: $('f-company').value.trim() || null,
@@ -742,7 +986,9 @@ $('save-btn').addEventListener('click', async () => {
     telegram_handle: $('f-telegram').value.trim() || null,
     province: $('f-province').value.trim() || null,
     notes: $('f-notes').value.trim() || null,
-    map_link: $('f-maplink').value.trim() || null
+    map_link: $('f-maplink').value.trim() || null,
+    last_purchase_date: $('f-last-order').value || null,
+    ytd_total: ytdRaw === '' ? null : Number(ytdRaw)
   };
 
   let contactId = editingId;
@@ -765,9 +1011,15 @@ $('save-btn').addEventListener('click', async () => {
     return;
   }
 
-  if (pendingPhotoFile && contactId) {
-    await uploadPhoto(contactId, pendingPhotoFile);
+  // Upload any newly added photos (additive — existing ones are untouched
+  // unless the user explicitly removed them above).
+  const newPhotos = galleryPhotos.filter((p) => p.isNew);
+  for (const p of newPhotos) {
+    await uploadPhoto(contactId, p.file);
   }
+
+  // Sync which photo is marked as cover.
+  await syncCoverFlag(contactId);
 
   $('save-btn').disabled = false;
   $('save-btn').textContent = 'Save';
@@ -777,7 +1029,7 @@ $('save-btn').addEventListener('click', async () => {
 
 async function uploadPhoto(contactId, file) {
   const ext = file.name.split('.').pop();
-  const path = `${contactId}/${Date.now()}.${ext}`;
+  const path = `${contactId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   const { error: uploadError } = await sb.storage.from(STORAGE_BUCKET).upload(path, file);
   if (uploadError) {
@@ -790,8 +1042,22 @@ async function uploadPhoto(contactId, file) {
   await sb.from('contact_photos').insert({
     contact_id: contactId,
     storage_path: path,
-    public_url: urlData.publicUrl
+    public_url: urlData.publicUrl,
+    is_cover: false
   });
+}
+
+async function syncCoverFlag(contactId) {
+  // Determine which existing (already-saved) photo should be the cover, based
+  // on the current gallery order/selection. New photos just uploaded aren't
+  // in galleryPhotos with an id yet, so if the cover pick is a brand-new
+  // photo, we fall back to leaving cover unset until reload (harmless —
+  // grid just shows the first photo returned).
+  const chosen = galleryPhotos[coverIndex];
+  if (!chosen || chosen.isNew || !chosen.id) return;
+
+  await sb.from('contact_photos').update({ is_cover: false }).eq('contact_id', contactId);
+  await sb.from('contact_photos').update({ is_cover: true }).eq('id', chosen.id);
 }
 
 $('delete-btn').addEventListener('click', async () => {
