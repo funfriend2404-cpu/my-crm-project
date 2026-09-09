@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Acacia Fabrics — Customers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ink:#EDE7DA;
+    --ink-dim:#B7AF9E;
+    --charcoal:#20242C;
+    --charcoal-2:#282D37;
+    --ivory:#FAF6ED;
+    --ivory-2:#F1EBDC;
+    --line:#3A4050;
+    --line-light:#E4DCC8;
+    --ochre:#C7912F;
+    --ochre-dark:#A8781F;
+    --thread:#AD5A3E;
+    --wholesale:#4C6E63;
+    --error:#B5563C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ivory);color:var(--charcoal);font-family:'Inter',sans-serif;}
+  h1,h2,h3,.display{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-0.01em;}
+
+  /* ---------- Login screen ---------- */
+  #login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:var(--charcoal); padding:24px;
+  }
+  .login-card{
+    width:100%;max-width:380px;background:var(--charcoal-2);
+    border:1px solid var(--line);padding:40px 32px;
+  }
+  .login-card .display{color:var(--ivory);font-size:28px;margin:0 0 4px;}
+  .login-card p.sub{color:var(--ink-dim);font-size:14px;margin:0 0 28px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;color:var(--ink-dim);margin-bottom:6px;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:10px 12px;background:var(--charcoal);
+    border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:14px;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{
+    outline:none;border-color:var(--ochre);
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    padding:11px 20px;font-family:inherit;font-size:14px;font-weight:500;
+    border:1px solid transparent;cursor:pointer;transition:background .15s ease;
+  }
+  .btn-primary{background:var(--ochre);color:var(--charcoal);}
+  .btn-primary:hover{background:var(--ochre-dark);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--ink-dim);border-color:var(--line);}
+  .btn-ghost:hover{color:var(--ink);border-color:var(--ink-dim);}
+  .btn-block{width:100%;}
+  .error-msg{color:var(--error);font-size:13px;margin:12px 0 0;}
+
+  /* ---------- App shell ---------- */
+  #app-screen{display:none;min-height:100vh;}
+  header.topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:18px 28px;border-bottom:1px solid var(--line-light);background:var(--ivory);
+    position:sticky;top:0;z-index:10;
+  }
+  header.topbar .wordmark{font-size:20px;color:var(--charcoal);}
+  header.topbar .wordmark span{color:var(--ochre-dark);}
+  .topbar-actions{display:flex;align-items:center;gap:10px;}
+  #search-input{
+    padding:9px 12px;border:1px solid var(--line-light);background:#fff;
+    font-family:inherit;font-size:14px;width:220px;
+  }
+  #search-input:focus{outline:none;border-color:var(--ochre);}
+  .signout-link{font-size:13px;color:var(--ink-dim);background:none;border:none;cursor:pointer;font-family:inherit;}
+  .signout-link:hover{color:var(--charcoal);}
+
+  main{max-width:1180px;margin:0 auto;padding:28px;}
+  #empty-state{color:#8b8474;padding:60px 0;text-align:center;font-size:15px;}
+  #loading-state{color:#8b8474;padding:60px 0;text-align:center;font-size:15px;}
+
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+    gap:20px;
+  }
+  .card{
+    background:#fff;border:1px solid var(--line-light);cursor:pointer;
+    display:flex;flex-direction:column;overflow:hidden;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(32,36,44,0.08);}
+  .card .photo{
+    aspect-ratio:4/3;background:var(--ivory-2);display:flex;align-items:center;justify-content:center;
+    overflow:hidden; position:relative;
+  }
+  .card .photo img{width:100%;height:100%;object-fit:cover;display:block;}
+  .card .photo svg{width:34px;height:34px;color:#c9c0a9;}
+  .tier-strip{position:absolute;top:0;left:0;right:0;height:4px;}
+  .card .body{padding:14px 16px 16px;}
+  .card .name{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin:0 0 2px;}
+  .card .company{font-size:12px;color:#8b8474;margin:0 0 8px;}
+  .card .desc{font-size:13px;color:#5a5545;margin:0;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .tier-tag{display:inline-block;font-size:11px;padding:2px 8px;color:#fff;text-transform:capitalize;}
+  .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
+  .footer-links{display:flex;gap:10px;}
+  .map-link{font-size:12px;color:var(--ochre-dark);text-decoration:none;}
+  .map-link:hover{text-decoration:underline;}
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(32,36,44,0.55);
+    align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:50;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:#fff;width:100%;max-width:520px;border:1px solid var(--line-light);
+  }
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 22px;border-bottom:1px solid var(--line-light);
+  }
+  .modal-head h2{font-size:18px;margin:0;}
+  .modal-close{background:none;border:none;font-size:20px;color:#8b8474;cursor:pointer;line-height:1;}
+  .modal-body{padding:22px;}
+  .modal-body .field{margin-bottom:14px;}
+  .modal-body .field label{color:#8b8474;}
+  .modal-body input, .modal-body select, .modal-body textarea{
+    background:#fff;border:1px solid var(--line-light);color:var(--charcoal);
+  }
+  .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus{border-color:var(--ochre);}
+  .row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-footer{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:16px 22px;border-top:1px solid var(--line-light);
+  }
+  .photo-preview{
+    width:100%;aspect-ratio:4/3;background:var(--ivory-2);margin-bottom:12px;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+  }
+  .photo-preview img{width:100%;height:100%;object-fit:cover;}
+  .photo-preview svg{width:34px;height:34px;color:#c9c0a9;}
+  .link-danger{color:var(--error);background:none;border:none;font-size:13px;cursor:pointer;font-family:inherit;padding:0;}
+  .link-danger:hover{text-decoration:underline;}
+  .field-error{color:var(--error);font-size:12px;margin-top:10px;}
+  .hint{font-size:12px;color:#8b8474;margin-top:-8px;margin-bottom:14px;}
+
+  @media (max-width:600px){
+    header.topbar{padding:14px 16px;flex-wrap:wrap;}
+    #search-input{width:100%;order:3;}
+    main{padding:18px;}
+    .row-2{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1 class="display">Acacia Fabrics</h1>
+    <p class="sub">Sign in to manage customers</p>
+    <div class="field">
+      <label for="login-email">Email</label>
+      <input id="login-email" type="email" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" autocomplete="current-password" />
+    </div>
+    <button id="login-btn" class="btn btn-primary btn-block">Sign in</button>
+    <p id="login-error" class="error-msg" style="display:none;"></p>
+  </div>
+</div>
+
+<!-- ============ APP SCREEN ============ -->
+<div id="app-screen">
+  <header class="topbar">
+    <div class="wordmark display">Acacia <span>Fabrics</span></div>
+    <div class="topbar-actions">
+      <input id="search-input" type="text" placeholder="Search customers…" />
+      <button id="add-btn" class="btn btn-primary">+ Add customer</button>
+      <button id="signout-btn" class="signout-link">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="loading-state">Loading customers…</div>
+    <div id="empty-state" style="display:none;">No customers yet — add your first one.</div>
+    <div id="grid" class="grid"></div>
+  </main>
+</div>
+
+<!-- ============ ADD / EDIT MODAL ============ -->
+<div id="modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modal-title">Add customer</h2>
+      <button class="modal-close" id="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="photo-preview" id="photo-preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>
+      </div>
+      <div class="field">
+        <label for="f-photo">Photo</label>
+        <input id="f-photo" type="file" accept="image/*" />
+      </div>
+      <div class="field">
+        <label for="f-name">Name *</label>
+        <input id="f-name" type="text" />
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-company">Company</label>
+          <input id="f-company" type="text" />
+        </div>
+        <div class="field">
+          <label for="f-tier">Customer type</label>
+          <select id="f-tier"></select>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-phone">Phone</label>
+          <input id="f-phone" type="text" />
+        </div>
+        <div class="field">
+          <label for="f-telegram">Telegram</label>
+          <input id="f-telegram" type="text" placeholder="@username or t.me/…" />
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-province">Province</label>
+          <input id="f-province" type="text" />
+        </div>
+        <div class="field"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-notes">Description / notes</label>
+        <textarea id="f-notes" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label for="f-maplink">Map link (Google Maps URL)</label>
+        <input id="f-maplink" type="url" placeholder="https://maps.app.goo.gl/…" />
+      </div>
+      <p id="form-error" class="field-error" style="display:none;"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="delete-btn" class="link-danger" style="display:none;">Delete customer</button>
+      <div style="flex:1;"></div>
+      <button id="cancel-btn" class="btn btn-ghost">Cancel</button>
+      <button id="save-btn" class="btn btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   CONFIG — fill these in with YOUR Supabase project values.
+   Project Settings -> API Keys.
+   Use the LEGACY "anon" key (starts with eyJ...), not the
+   newer sb_publishable_ key, for compatibility with this
+   version of the Supabase JS library.
+========================================================= */
+const SUPABASE_URL = 'https://inaqtsswodagjwtbtjmt.supabase.co';
+// Legacy anon key is recommended (it's the one that already worked for you).
+// This file loads the LATEST supabase-js from a CDN, so the newer
+// sb_publishable_... key may also work here — but legacy is the safe bet.
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluYXF0c3N3b2RhZ2p3dGJ0am10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NDg5ODgsImV4cCI6MjEwNDQyNDk4OH0.20_DMjZUh2gDKewQ-RmBEYh4-6OQzykGhkjWtsag91E';
+const STORAGE_BUCKET = 'showroom-photos';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let contacts = [];
+let customerTypes = ['retail', 'wholesale', 'vip'];
+let editingId = null;
+let pendingPhotoFile = null;
+let existingPhotoUrl = null;
+
+const $ = (id) => document.getElementById(id);
+
+/* ---------- Auth ---------- */
+async function checkSession() {
+  const { data } = await sb.auth.getSession();
+  if (data.session) {
+    showApp();
+  } else {
+    showLogin();
+  }
+}
+
+function showLogin() {
+  $('login-screen').style.display = 'flex';
+  $('app-screen').style.display = 'none';
+}
+
+function showApp() {
+  $('login-screen').style.display = 'none';
+  $('app-screen').style.display = 'block';
+  loadCustomerTypes();
+  loadContacts();
+}
+
+async function loadCustomerTypes() {
+  const { data } = await sb.from('settings').select('customer_types').eq('id', 1).single();
+  if (data && Array.isArray(data.customer_types) && data.customer_types.length) {
+    customerTypes = data.customer_types;
+  }
+  populateTierSelect();
+}
+
+function populateTierSelect(selected) {
+  const sel = $('f-tier');
+  sel.innerHTML = '';
+  customerTypes.forEach((type) => {
+    const opt = document.createElement('option');
+    opt.value = type;
+    opt.textContent = capitalize(type);
+    sel.appendChild(opt);
+  });
+  const addOpt = document.createElement('option');
+  addOpt.value = '__add_new__';
+  addOpt.textContent = '+ Add new type…';
+  sel.appendChild(addOpt);
+  if (selected) sel.value = selected;
+}
+
+$('f-tier').addEventListener('change', async (e) => {
+  if (e.target.value !== '__add_new__') return;
+  const name = prompt('New customer type name (e.g. "Distributor"):');
+  const trimmed = (name || '').trim().toLowerCase();
+  if (!trimmed) {
+    populateTierSelect(customerTypes[0]);
+    return;
+  }
+  if (customerTypes.includes(trimmed)) {
+    populateTierSelect(trimmed);
+    return;
+  }
+  customerTypes = [...customerTypes, trimmed];
+  await sb.from('settings').update({ customer_types: customerTypes }).eq('id', 1);
+  populateTierSelect(trimmed);
+});
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const TAG_PALETTE = ['#AD5A3E', '#4C6E63', '#C7912F', '#5B6EA8', '#8A5FA8', '#B7AF9E', '#3E7A8C'];
+function colorForType(type) {
+  let hash = 0;
+  for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
+  return TAG_PALETTE[Math.abs(hash) % TAG_PALETTE.length];
+}
+
+$('login-btn').addEventListener('click', async () => {
+  const email = $('login-email').value.trim();
+  const password = $('login-password').value;
+  $('login-error').style.display = 'none';
+  $('login-btn').disabled = true;
+  $('login-btn').textContent = 'Signing in…';
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+
+  $('login-btn').disabled = false;
+  $('login-btn').textContent = 'Sign in';
+
+  if (error) {
+    $('login-error').textContent = 'Could not sign in. Check your email and password.';
+    $('login-error').style.display = 'block';
+    return;
+  }
+  showApp();
+});
+
+$('login-password').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('login-btn').click();
+});
+
+$('signout-btn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  showLogin();
+});
+
+/* ---------- Load & render customers ---------- */
+async function loadContacts() {
+  $('loading-state').style.display = 'block';
+  $('empty-state').style.display = 'none';
+  $('grid').innerHTML = '';
+
+  const { data, error } = await sb
+    .from('contacts')
+    .select('*, contact_photos(public_url, created_at)')
+    .order('created_at', { ascending: false });
+
+  $('loading-state').style.display = 'none';
+
+  if (error) {
+    $('empty-state').textContent = 'Could not load customers: ' + error.message;
+    $('empty-state').style.display = 'block';
+    return;
+  }
+
+  contacts = data || [];
+  renderGrid();
+}
+
+function renderGrid() {
+  const q = $('search-input').value.trim().toLowerCase();
+  const filtered = contacts.filter((c) => {
+    if (!q) return true;
+    return (
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.company_name || '').toLowerCase().includes(q) ||
+      (c.notes || '').toLowerCase().includes(q)
+    );
+  });
+
+  const grid = $('grid');
+  grid.innerHTML = '';
+
+  if (filtered.length === 0) {
+    $('empty-state').textContent = contacts.length === 0
+      ? 'No customers yet — add your first one.'
+      : 'No customers match your search.';
+    $('empty-state').style.display = 'block';
+    return;
+  }
+  $('empty-state').style.display = 'none';
+
+  filtered.forEach((c) => {
+    const cover = c.contact_photos && c.contact_photos.length ? c.contact_photos[0].public_url : null;
+    const tierColor = colorForType(c.tier || 'retail');
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="photo">
+        <div class="tier-strip" style="background:${tierColor}"></div>
+        ${cover
+          ? `<img src="${escapeAttr(cover)}" alt="${escapeAttr(c.name)}" />`
+          : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>`
+        }
+      </div>
+      <div class="body">
+        <p class="name">${escapeHtml(c.name)}</p>
+        ${c.company_name ? `<p class="company">${escapeHtml(c.company_name)}</p>` : ''}
+        ${c.notes ? `<p class="desc">${escapeHtml(c.notes)}</p>` : ''}
+        <div class="card-footer">
+          <span class="tier-tag" style="background:${tierColor}">${escapeHtml(c.tier || 'retail')}</span>
+          <div class="footer-links">
+            ${c.telegram_handle ? `<a href="${escapeAttr(telegramUrl(c.telegram_handle))}" target="_blank" rel="noopener" class="map-link" onclick="event.stopPropagation()">Telegram</a>` : ''}
+            ${c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="map-link" onclick="event.stopPropagation()">📍 Map</a>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+    card.addEventListener('click', () => openModal(c));
+    grid.appendChild(card);
+  });
+}
+
+function telegramUrl(handle) {
+  const h = (handle || '').trim();
+  if (h.startsWith('http')) return h;
+  return `https://t.me/${h.replace(/^@/, '')}`;
+}
+
+$('search-input').addEventListener('input', renderGrid);
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+function escapeAttr(str) {
+  return (str || '').replace(/"/g, '&quot;');
+}
+
+/* ---------- Modal: add / edit ---------- */
+$('add-btn').addEventListener('click', () => openModal(null));
+$('modal-close').addEventListener('click', closeModal);
+$('cancel-btn').addEventListener('click', closeModal);
+
+function openModal(contact) {
+  editingId = contact ? contact.id : null;
+  pendingPhotoFile = null;
+  existingPhotoUrl = contact && contact.contact_photos && contact.contact_photos.length
+    ? contact.contact_photos[0].public_url
+    : null;
+
+  $('modal-title').textContent = contact ? 'Edit customer' : 'Add customer';
+  $('f-name').value = contact ? contact.name || '' : '';
+  $('f-company').value = contact ? contact.company_name || '' : '';
+  populateTierSelect(contact ? contact.tier || customerTypes[0] : customerTypes[0]);
+  $('f-phone').value = contact ? contact.phone || '' : '';
+  $('f-telegram').value = contact ? contact.telegram_handle || '' : '';
+  $('f-province').value = contact ? contact.province || '' : '';
+  $('f-notes').value = contact ? contact.notes || '' : '';
+  $('f-maplink').value = contact ? contact.map_link || '' : '';
+  $('f-photo').value = '';
+  $('form-error').style.display = 'none';
+  $('delete-btn').style.display = contact ? 'inline-block' : 'none';
+
+  renderPhotoPreview(existingPhotoUrl);
+  $('modal-backdrop').classList.add('open');
+}
+
+function closeModal() {
+  $('modal-backdrop').classList.remove('open');
+}
+
+$('f-photo').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  pendingPhotoFile = file;
+  const reader = new FileReader();
+  reader.onload = (ev) => renderPhotoPreview(ev.target.result);
+  reader.readAsDataURL(file);
+});
+
+function renderPhotoPreview(url) {
+  const el = $('photo-preview');
+  if (url) {
+    el.innerHTML = `<img src="${escapeAttr(url)}" alt="" />`;
+  } else {
+    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5.5-5.5a2 2 0 00-2.8 0L3 19"/></svg>`;
+  }
+}
+
+$('save-btn').addEventListener('click', async () => {
+  const name = $('f-name').value.trim();
+  $('form-error').style.display = 'none';
+
+  if (!name) {
+    $('form-error').textContent = 'Name is required.';
+    $('form-error').style.display = 'block';
+    return;
+  }
+
+  $('save-btn').disabled = true;
+  $('save-btn').textContent = 'Saving…';
+
+  const payload = {
+    name,
+    company_name: $('f-company').value.trim() || null,
+    tier: $('f-tier').value,
+    phone: $('f-phone').value.trim() || null,
+    telegram_handle: $('f-telegram').value.trim() || null,
+    province: $('f-province').value.trim() || null,
+    notes: $('f-notes').value.trim() || null,
+    map_link: $('f-maplink').value.trim() || null
+  };
+
+  let contactId = editingId;
+  let saveError = null;
+
+  if (editingId) {
+    const { error } = await sb.from('contacts').update(payload).eq('id', editingId);
+    saveError = error;
+  } else {
+    const { data, error } = await sb.from('contacts').insert(payload).select().single();
+    saveError = error;
+    if (data) contactId = data.id;
+  }
+
+  if (saveError) {
+    $('save-btn').disabled = false;
+    $('save-btn').textContent = 'Save';
+    $('form-error').textContent = saveError.message;
+    $('form-error').style.display = 'block';
+    return;
+  }
+
+  if (pendingPhotoFile && contactId) {
+    await uploadPhoto(contactId, pendingPhotoFile);
+  }
+
+  $('save-btn').disabled = false;
+  $('save-btn').textContent = 'Save';
+  closeModal();
+  loadContacts();
+});
+
+async function uploadPhoto(contactId, file) {
+  const ext = file.name.split('.').pop();
+  const path = `${contactId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await sb.storage.from(STORAGE_BUCKET).upload(path, file);
+  if (uploadError) {
+    console.error('Photo upload failed:', uploadError.message);
+    return;
+  }
+
+  const { data: urlData } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+
+  await sb.from('contact_photos').insert({
+    contact_id: contactId,
+    storage_path: path,
+    public_url: urlData.publicUrl
+  });
+}
+
+$('delete-btn').addEventListener('click', async () => {
+  if (!editingId) return;
+  if (!confirm('Delete this customer? This cannot be undone.')) return;
+
+  $('delete-btn').disabled = true;
+  const { error } = await sb.from('contacts').delete().eq('id', editingId);
+  $('delete-btn').disabled = false;
+
+  if (error) {
+    $('form-error').textContent = error.message;
+    $('form-error').style.display = 'block';
+    return;
+  }
+  closeModal();
+  loadContacts();
+});
+
+/* ---------- Boot ---------- */
+checkSession();
+</script>
+</body>
+</html>
