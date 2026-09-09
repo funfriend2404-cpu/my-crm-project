@@ -6,6 +6,7 @@
 <title>Acacia Fabrics — Customers</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -112,9 +113,12 @@
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .tier-tag{display:inline-block;font-size:11px;padding:2px 8px;color:#fff;text-transform:capitalize;}
   .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
-  .footer-links{display:flex;gap:10px;}
-  .map-link{font-size:12px;color:var(--ochre-dark);text-decoration:none;}
-  .map-link:hover{text-decoration:underline;}
+  .footer-links{display:flex;gap:8px;}
+  .icon-link{
+    width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:13px;color:#fff;flex:0 0 auto;text-decoration:none;
+  }
+  .icon-link:hover{filter:brightness(0.9);}
   .reorder-card{cursor:default;}
   .reorder-card:hover{transform:none;box-shadow:none;}
   .reorder-controls{
@@ -302,6 +306,16 @@
         <div class="field">
           <label for="f-telegram">Telegram</label>
           <input id="f-telegram" type="text" placeholder="@username or t.me/…" />
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="field">
+          <label for="f-whatsapp">WhatsApp</label>
+          <input id="f-whatsapp" type="text" placeholder="Phone number or wa.me/…" />
+        </div>
+        <div class="field">
+          <label for="f-facebook">Facebook</label>
+          <input id="f-facebook" type="text" placeholder="Profile / page URL" />
         </div>
       </div>
       <div class="row-2">
@@ -633,6 +647,25 @@ function formatYtd(n) {
   return num.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 }
 
+function telegramUrl(handle) {
+  const h = (handle || '').trim();
+  if (h.startsWith('http')) return h;
+  return `https://t.me/${h.replace(/^@/, '')}`;
+}
+
+function whatsappUrl(handle) {
+  const h = (handle || '').trim();
+  if (h.startsWith('http')) return h;
+  const digits = h.replace(/[^\d]/g, '');
+  return `https://wa.me/${digits}`;
+}
+
+function facebookUrl(handle) {
+  const h = (handle || '').trim();
+  if (h.startsWith('http')) return h;
+  return `https://facebook.com/${h.replace(/^@/, '')}`;
+}
+
 function renderGrid() {
   const q = $('search-input').value.trim().toLowerCase();
   const filtered = contacts.filter((c) => {
@@ -668,6 +701,13 @@ function renderGrid() {
     else if (lastOrderLabel) orderLine = `Last order: ${lastOrderLabel}`;
     else if (ytdLabel) orderLine = `${ytdLabel} YTD`;
 
+    const iconLinks = [
+      c.telegram_handle ? `<a href="${escapeAttr(telegramUrl(c.telegram_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#26A5E4" title="Telegram" onclick="event.stopPropagation()"><i class="fa-brands fa-telegram"></i></a>` : '',
+      c.whatsapp_handle ? `<a href="${escapeAttr(whatsappUrl(c.whatsapp_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#25D366" title="WhatsApp" onclick="event.stopPropagation()"><i class="fa-brands fa-whatsapp"></i></a>` : '',
+      c.facebook_handle ? `<a href="${escapeAttr(facebookUrl(c.facebook_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#1877F2" title="Facebook" onclick="event.stopPropagation()"><i class="fa-brands fa-facebook-f"></i></a>` : '',
+      c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="icon-link" style="background:#AD5A3E" title="Map" onclick="event.stopPropagation()"><i class="fa-solid fa-location-dot"></i></a>` : ''
+    ].join('');
+
     const card = document.createElement('div');
     card.className = 'card';
     if (reorderMode) card.classList.add('reorder-card');
@@ -699,8 +739,7 @@ function renderGrid() {
         <div class="card-footer">
           <span class="tier-tag" style="background:${tierColor}">${escapeHtml(c.tier || 'retail')}</span>
           <div class="footer-links">
-            ${c.telegram_handle ? `<a href="${escapeAttr(telegramUrl(c.telegram_handle))}" target="_blank" rel="noopener" class="map-link" onclick="event.stopPropagation()">Telegram</a>` : ''}
-            ${c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="map-link" onclick="event.stopPropagation()">📍 Map</a>` : ''}
+            ${iconLinks}
           </div>
         </div>
       </div>
@@ -717,12 +756,6 @@ function renderGrid() {
     }
     grid.appendChild(card);
   });
-}
-
-function telegramUrl(handle) {
-  const h = (handle || '').trim();
-  if (h.startsWith('http')) return h;
-  return `https://t.me/${h.replace(/^@/, '')}`;
 }
 
 $('search-input').addEventListener('input', renderGrid);
@@ -803,13 +836,15 @@ $('export-btn').addEventListener('click', () => {
     );
   });
 
-  const headers = ['Name', 'Company', 'Type', 'Phone', 'Telegram', 'Province', 'Notes', 'Map link', 'Last order date', 'YTD total'];
+  const headers = ['Name', 'Company', 'Type', 'Phone', 'Telegram', 'WhatsApp', 'Facebook', 'Province', 'Notes', 'Map link', 'Last order date', 'YTD total'];
   const rows = filtered.map((c) => [
     c.name || '',
     c.company_name || '',
     c.tier || '',
     c.phone || '',
     c.telegram_handle || '',
+    c.whatsapp_handle || '',
+    c.facebook_handle || '',
     c.province || '',
     c.notes || '',
     c.map_link || '',
@@ -895,6 +930,8 @@ function openModal(contact) {
   populateTierSelect(contact ? contact.tier || customerTypes[0] : customerTypes[0]);
   $('f-phone').value = contact ? contact.phone || '' : '';
   $('f-telegram').value = contact ? contact.telegram_handle || '' : '';
+  $('f-whatsapp').value = contact ? contact.whatsapp_handle || '' : '';
+  $('f-facebook').value = contact ? contact.facebook_handle || '' : '';
   $('f-province').value = contact ? contact.province || '' : '';
   $('f-notes').value = contact ? contact.notes || '' : '';
   $('f-maplink').value = contact ? contact.map_link || '' : '';
@@ -984,6 +1021,8 @@ $('save-btn').addEventListener('click', async () => {
     tier: $('f-tier').value,
     phone: $('f-phone').value.trim() || null,
     telegram_handle: $('f-telegram').value.trim() || null,
+    whatsapp_handle: $('f-whatsapp').value.trim() || null,
+    facebook_handle: $('f-facebook').value.trim() || null,
     province: $('f-province').value.trim() || null,
     notes: $('f-notes').value.trim() || null,
     map_link: $('f-maplink').value.trim() || null,
