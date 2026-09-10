@@ -30,10 +30,25 @@
     --wholesale:#6B7F52;
     --error:#B5563C;
     --success:#5B6E4D;
+
+    --glass-ivory:rgba(246,245,239,0.6);
+    --glass-ivory-strong:rgba(246,245,239,0.82);
+    --glass-border:rgba(255,255,255,0.55);
+    --glass-border-dark:rgba(46,46,34,0.1);
+    --glass-shadow:rgba(74,74,54,0.14);
+    --glass-highlight:rgba(255,255,255,0.4);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html{-webkit-text-size-adjust:100%;overflow-x:hidden;overscroll-behavior-x:none;width:100%;}
-  body{margin:0;background:var(--ivory);color:var(--charcoal);font-family:'Inter',sans-serif;overflow-x:hidden;overscroll-behavior-x:none;width:100%;}
+  body{
+    margin:0;color:var(--charcoal);font-family:'Inter',sans-serif;overflow-x:hidden;overscroll-behavior-x:none;width:100%;
+    background:
+      radial-gradient(760px 520px at 8% -6%, rgba(176,134,80,0.16), transparent 60%),
+      radial-gradient(680px 480px at 96% 18%, rgba(91,110,77,0.13), transparent 55%),
+      radial-gradient(900px 620px at 50% 110%, rgba(176,134,80,0.10), transparent 60%),
+      var(--ivory);
+    background-attachment:fixed;
+  }
   h1,h2,h3,.display{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-0.01em;}
 
   /* ---------- Login screen ---------- */
@@ -62,11 +77,24 @@
     border:1px solid transparent;cursor:pointer;transition:background .15s ease;
     min-height:44px;
   }
-  .btn-primary{background:var(--ochre);color:var(--charcoal);}
-  .btn-primary:hover{background:var(--ochre-dark);}
-  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
-  .btn-ghost{background:transparent;color:var(--ink-dim);border-color:var(--line);}
-  .btn-ghost:hover{color:var(--ink);border-color:var(--ink-dim);}
+  .btn-primary{
+    background:linear-gradient(180deg, #C99862 0%, var(--ochre) 55%, var(--ochre-dark) 100%);
+    color:var(--charcoal);border-color:rgba(150,112,63,0.4);
+    box-shadow:0 1px 0 rgba(255,255,255,0.35) inset, 0 2px 6px rgba(150,112,63,0.32);
+    transition:filter .15s ease, box-shadow .15s ease, transform .08s ease;
+  }
+  .btn-primary:hover{
+    filter:brightness(1.06);
+    box-shadow:0 1px 0 rgba(255,255,255,0.4) inset, 0 5px 14px rgba(150,112,63,0.42);
+  }
+  .btn-primary:active{transform:translateY(1px);filter:brightness(0.97);}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;filter:none;transform:none;}
+  .btn-ghost{
+    background:var(--glass-ivory);color:var(--ink-dim);border-color:var(--glass-border-dark);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .btn-ghost:hover{background:var(--glass-ivory-strong);color:var(--charcoal);border-color:var(--ochre);}
   .btn-block{width:100%;}
   .error-msg{color:var(--error);font-size:13px;margin:12px 0 0;}
 
@@ -120,11 +148,19 @@
     gap:20px;
   }
   .card{
-    background:#fff;border:1px solid var(--line-light);cursor:pointer;
+    background:var(--glass-ivory);
+    backdrop-filter:blur(18px) saturate(150%);
+    -webkit-backdrop-filter:blur(18px) saturate(150%);
+    border:1px solid var(--glass-border);cursor:pointer;
     display:flex;flex-direction:column;overflow:hidden;position:relative;
-    transition:transform .12s ease, box-shadow .12s ease;
+    box-shadow:0 1px 0 var(--glass-highlight) inset, 0 10px 24px var(--glass-shadow);
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
   }
-  .card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(32,36,44,0.08);}
+  .card:hover{
+    transform:translateY(-3px);
+    background:var(--glass-ivory-strong);
+    box-shadow:0 1px 0 var(--glass-highlight) inset, 0 16px 32px var(--glass-shadow);
+  }
   .card-swipe-wrap{position:relative;overflow:hidden;touch-action:pan-y;}
   .card-swipe-actions{
     position:absolute;top:0;right:0;bottom:0;display:flex;
@@ -154,14 +190,23 @@
   .card .last-order{font-size:11px;color:#9b9481;margin:-6px 0 8px;}
   .card .desc{font-size:13px;color:#5a5545;margin:0;line-height:1.4;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .tier-tag{display:inline-block;font-size:11px;padding:2px 8px;color:#fff;text-transform:capitalize;}
+  .tier-tag{
+    display:inline-block;font-size:11px;padding:2px 8px;color:#fff;text-transform:capitalize;
+    background-image:linear-gradient(180deg, rgba(255,255,255,0.3), rgba(255,255,255,0) 55%);
+    background-blend-mode:overlay;
+    box-shadow:0 1px 0 rgba(255,255,255,0.25) inset;
+  }
   .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
   .footer-links{display:flex;gap:8px;}
   .icon-link{
     width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:14px;color:#fff;flex:0 0 auto;text-decoration:none;
+    background-image:linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0) 55%);
+    background-blend-mode:overlay;
+    box-shadow:0 1px 0 rgba(255,255,255,0.3) inset, 0 2px 5px rgba(32,36,44,0.18);
+    transition:filter .12s ease, transform .1s ease;
   }
-  .icon-link:hover{filter:brightness(0.9);}
+  .icon-link:hover{filter:brightness(1.08);transform:translateY(-1px);}
   .reorder-card{cursor:default;}
   .reorder-card:hover{transform:none;box-shadow:none;}
   .reorder-controls{
@@ -177,11 +222,15 @@
   /* ---------- Floating Add button (mobile) ---------- */
   #fab-add{
     display:none;position:fixed;right:20px;bottom:24px;z-index:20;
-    width:56px;height:56px;border-radius:50%;background:var(--ochre);color:var(--charcoal);
-    border:none;font-size:26px;box-shadow:0 6px 18px rgba(32,36,44,0.3);cursor:pointer;
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(180deg, #C99862 0%, var(--ochre) 55%, var(--ochre-dark) 100%);
+    color:var(--charcoal);
+    border:1px solid rgba(150,112,63,0.4);font-size:26px;cursor:pointer;
+    box-shadow:0 1px 0 rgba(255,255,255,0.35) inset, 0 8px 20px rgba(150,112,63,0.4);
     align-items:center;justify-content:center;
+    transition:filter .15s ease, transform .08s ease;
   }
-  #fab-add:active{background:var(--ochre-dark);}
+  #fab-add:active{filter:brightness(0.95);transform:translateY(1px) scale(0.98);}
 
   /* ---------- Pull to refresh ---------- */
   #ptr-indicator{
