@@ -9,27 +9,27 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Acacia">
-<meta name="theme-color" content="#20242C">
+<meta name="theme-color" content="#2E2E22">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --ink:#EDE7DA;
-    --ink-dim:#B7AF9E;
-    --charcoal:#20242C;
-    --charcoal-2:#282D37;
-    --ivory:#FAF6ED;
-    --ivory-2:#F1EBDC;
-    --line:#3A4050;
-    --line-light:#E4DCC8;
-    --ochre:#C7912F;
-    --ochre-dark:#A8781F;
-    --thread:#AD5A3E;
-    --wholesale:#4C6E63;
+    --ink:#EDE8DD;
+    --ink-dim:#B0AC93;
+    --charcoal:#2E2E22;
+    --charcoal-2:#383826;
+    --ivory:#F6F5EF;
+    --ivory-2:#EAE7D9;
+    --line:#4A4A36;
+    --line-light:#DAD6C4;
+    --ochre:#B08650;
+    --ochre-dark:#96703F;
+    --thread:#5B6E4D;
+    --wholesale:#6B7F52;
     --error:#B5563C;
-    --success:#4C6E63;
+    --success:#5B6E4D;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html{-webkit-text-size-adjust:100%;}
@@ -213,7 +213,7 @@
   }
   .toast.show{opacity:1;transform:translateY(0);}
   .toast.toast-error{background:var(--error);}
-  .toast.toast-success i{color:#8FBF9F;}
+  .toast.toast-success i{color:#A8C48B;}
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -300,6 +300,19 @@
   .settings-row:first-of-type{border-top:none;}
   .settings-row p{margin:0;font-size:13px;color:#5a5545;}
   .settings-row p.label{font-size:14px;color:var(--charcoal);margin-bottom:2px;}
+
+  /* ---------- View (read-only) modal ---------- */
+  .view-hero{aspect-ratio:16/9;background:var(--ivory-2);overflow:hidden;position:relative;}
+  .view-hero img{width:100%;height:100%;object-fit:cover;display:block;}
+  .view-thumbs{display:flex;gap:8px;overflow-x:auto;padding:12px 22px 0;}
+  .view-thumbs img{width:64px;height:64px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;flex:0 0 auto;}
+  .view-thumbs img.active{border-color:var(--ochre);}
+  .view-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-light);font-size:14px;}
+  .view-row:first-of-type{border-top:none;}
+  .view-row i{width:16px;color:#8b8474;}
+  .view-row a{color:var(--charcoal);text-decoration:none;}
+  .view-row a:hover{color:var(--ochre-dark);}
+  .view-notes{font-size:13.5px;color:#5a5545;line-height:1.5;margin:14px 0 0;}
 
   @media (max-width:600px){
     header.topbar{padding:10px 14px;flex-wrap:nowrap;gap:8px;}
@@ -392,6 +405,38 @@
 </div>
 
 <div id="toast-stack"></div>
+
+<!-- ============ VIEW (READ-ONLY) MODAL ============ -->
+<div id="view-modal-backdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-drag-handle"></div>
+    <div class="modal-head">
+      <h2 id="view-name">Customer</h2>
+      <button class="modal-close" id="view-modal-close">&times;</button>
+    </div>
+    <div class="view-hero" id="view-hero">
+      <img id="view-hero-img" src="" alt="" />
+    </div>
+    <div class="view-thumbs" id="view-thumbs"></div>
+    <div class="modal-body">
+      <p id="view-company" class="company" style="font-size:13px;color:#8b8474;margin:0 0 10px;"></p>
+      <span id="view-tier" class="tier-tag"></span>
+      <div style="margin-top:16px;">
+        <div class="view-row" id="view-row-order" style="display:none;"><i class="fa-solid fa-calendar"></i><span id="view-order-text"></span></div>
+        <div class="view-row" id="view-row-phone" style="display:none;"><i class="fa-solid fa-phone"></i><a id="view-phone-link" href="#"></a></div>
+        <div class="view-row" id="view-row-telegram" style="display:none;"><i class="fa-brands fa-telegram"></i><a id="view-telegram-link" href="#" target="_blank" rel="noopener"></a></div>
+        <div class="view-row" id="view-row-whatsapp" style="display:none;"><i class="fa-brands fa-whatsapp"></i><a id="view-whatsapp-link" href="#" target="_blank" rel="noopener"></a></div>
+        <div class="view-row" id="view-row-facebook" style="display:none;"><i class="fa-brands fa-facebook-f"></i><a id="view-facebook-link" href="#" target="_blank" rel="noopener"></a></div>
+        <div class="view-row" id="view-row-province" style="display:none;"><i class="fa-solid fa-location-dot"></i><span id="view-province-text"></span></div>
+        <div class="view-row" id="view-row-map" style="display:none;"><i class="fa-solid fa-map"></i><a id="view-map-link" href="#" target="_blank" rel="noopener">Open in Maps</a></div>
+      </div>
+      <p id="view-notes" class="view-notes" style="display:none;"></p>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button id="view-edit-btn" class="btn btn-primary"><i class="fa-solid fa-pen"></i> Edit</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============ ADD / EDIT MODAL ============ -->
 <div id="modal-backdrop" class="modal-backdrop">
@@ -550,6 +595,7 @@ let customerTypes = ['retail', 'wholesale', 'vip'];
 let editingId = null;
 let reorderMode = false;
 let searchDebounceTimer = null;
+let currentRole = 'admin';
 
 /* Gallery state for the add/edit modal.
    Each item: { id?: db id if already saved, file?: File if newly picked,
@@ -578,10 +624,36 @@ function toast(message, type) {
 async function checkSession() {
   const { data } = await sb.auth.getSession();
   if (data.session) {
+    await loadRole(data.session.user.id);
     showApp();
   } else {
     showLogin();
   }
+}
+
+async function loadRole(userId) {
+  try {
+    const { data, error } = await sb.from('profiles').select('role').eq('id', userId).single();
+    if (!error && data && data.role) {
+      currentRole = data.role;
+    } else {
+      currentRole = 'admin';
+    }
+  } catch (e) {
+    currentRole = 'admin';
+  }
+  applyRolePermissions();
+}
+
+function applyRolePermissions() {
+  const isLimited = currentRole === 'limited';
+  document.body.classList.toggle('role-limited', isLimited);
+  $('reorder-btn').style.display = isLimited ? 'none' : '';
+  $('settings-btn').style.display = isLimited ? 'none' : '';
+  $('m-reorder-btn').style.display = isLimited ? 'none' : '';
+  $('m-settings-btn').style.display = isLimited ? 'none' : '';
+  $('manage-types-link').style.display = isLimited ? 'none' : '';
+  renderGrid();
 }
 
 function showLogin() {
@@ -706,7 +778,7 @@ $('new-type-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') $('new-type-add-btn').click();
 });
 
-const TAG_PALETTE = ['#AD5A3E', '#4C6E63', '#C7912F', '#5B6EA8', '#8A5FA8', '#B7AF9E', '#3E7A8C'];
+const TAG_PALETTE = ['#5B6E4D', '#B08650', '#6B7F52', '#8B6F47', '#4A5D3A', '#A68B5B', '#7C8F6E'];
 function colorForType(type) {
   let hash = 0;
   for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
@@ -720,7 +792,7 @@ $('login-btn').addEventListener('click', async () => {
   $('login-btn').disabled = true;
   $('login-btn').textContent = 'Signing in…';
 
-  const { error } = await sb.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
   $('login-btn').disabled = false;
   $('login-btn').textContent = 'Sign in';
@@ -730,6 +802,7 @@ $('login-btn').addEventListener('click', async () => {
     $('login-error').style.display = 'block';
     return;
   }
+  await loadRole(data.user.id);
   showApp();
 });
 
@@ -869,6 +942,8 @@ function renderGrid() {
   }
   $('empty-state').style.display = 'none';
 
+  const canEdit = currentRole !== 'limited';
+
   filtered.forEach((c, i) => {
     const photos = c.contact_photos || [];
     const cover = coverPhotoFor(c);
@@ -886,7 +961,7 @@ function renderGrid() {
       c.telegram_handle ? `<a href="${escapeAttr(telegramUrl(c.telegram_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#26A5E4" title="Telegram" onclick="event.stopPropagation()"><i class="fa-brands fa-telegram"></i></a>` : '',
       c.whatsapp_handle ? `<a href="${escapeAttr(whatsappUrl(c.whatsapp_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#25D366" title="WhatsApp" onclick="event.stopPropagation()"><i class="fa-brands fa-whatsapp"></i></a>` : '',
       c.facebook_handle ? `<a href="${escapeAttr(facebookUrl(c.facebook_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#1877F2" title="Facebook" onclick="event.stopPropagation()"><i class="fa-brands fa-facebook-f"></i></a>` : '',
-      c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="icon-link" style="background:#AD5A3E" title="Map" onclick="event.stopPropagation()"><i class="fa-solid fa-location-dot"></i></a>` : ''
+      c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="icon-link" style="background:#8B6F47" title="Map" onclick="event.stopPropagation()"><i class="fa-solid fa-location-dot"></i></a>` : ''
     ].join('');
 
     const cardInner = `
@@ -925,12 +1000,12 @@ function renderGrid() {
 
     const wrap = document.createElement('div');
     wrap.className = 'card-swipe-wrap';
-    wrap.innerHTML = `
+    wrap.innerHTML = canEdit ? `
       <div class="card-swipe-actions">
         <button class="swipe-edit" data-id="${c.id}" aria-label="Edit"><i class="fa-solid fa-pen"></i></button>
         <button class="swipe-delete" data-id="${c.id}" aria-label="Delete"><i class="fa-solid fa-trash"></i></button>
       </div>
-    `;
+    ` : '';
     const card = document.createElement('div');
     card.className = 'card';
     if (reorderMode) card.classList.add('reorder-card');
@@ -947,11 +1022,13 @@ function renderGrid() {
     } else {
       card.addEventListener('click', () => {
         if (card.classList.contains('swiped')) { card.classList.remove('swiped'); return; }
-        openModal(c);
+        openViewModal(c);
       });
-      attachSwipeHandlers(card, c);
-      wrap.querySelector('.swipe-edit').addEventListener('click', (e) => { e.stopPropagation(); openModal(c); });
-      wrap.querySelector('.swipe-delete').addEventListener('click', (e) => { e.stopPropagation(); confirmDeleteFromCard(c); });
+      if (canEdit) {
+        attachSwipeHandlers(card, c);
+        wrap.querySelector('.swipe-edit').addEventListener('click', (e) => { e.stopPropagation(); openModal(c); });
+        wrap.querySelector('.swipe-delete').addEventListener('click', (e) => { e.stopPropagation(); confirmDeleteFromCard(c); });
+      }
     }
     grid.appendChild(wrap);
   });
@@ -1167,6 +1244,88 @@ $('reset-ytd-btn').addEventListener('click', async () => {
   }
 });
 
+/* ---------- View (read-only) modal ---------- */
+function openViewModal(contact) {
+  const photos = contact.contact_photos || [];
+  const cover = coverPhotoFor(contact);
+
+  $('view-name').textContent = contact.name || '';
+  $('view-company').textContent = contact.company_name || '';
+  $('view-company').style.display = contact.company_name ? 'block' : 'none';
+
+  const tierColor = colorForType(contact.tier || 'retail');
+  $('view-tier').textContent = capitalize(contact.tier || 'retail');
+  $('view-tier').style.background = tierColor;
+
+  $('view-hero-img').src = cover ? cover.public_url : '';
+  $('view-hero').style.display = cover ? 'block' : 'none';
+
+  const thumbs = $('view-thumbs');
+  thumbs.innerHTML = '';
+  if (photos.length > 1) {
+    photos.forEach((p) => {
+      const img = document.createElement('img');
+      img.src = p.public_url;
+      img.className = cover && p.id === cover.id ? 'active' : '';
+      img.addEventListener('click', () => {
+        $('view-hero-img').src = p.public_url;
+        thumbs.querySelectorAll('img').forEach((t) => t.classList.remove('active'));
+        img.classList.add('active');
+      });
+      thumbs.appendChild(img);
+    });
+  }
+
+  const lastOrderLabel = formatLastOrder(contact.last_purchase_date);
+  const ytdLabel = formatYtd(contact.ytd_total);
+  let orderLine = '';
+  if (lastOrderLabel && ytdLabel) orderLine = `Last order: ${lastOrderLabel} · ${ytdLabel} YTD`;
+  else if (lastOrderLabel) orderLine = `Last order: ${lastOrderLabel}`;
+  else if (ytdLabel) orderLine = `${ytdLabel} YTD`;
+  $('view-row-order').style.display = orderLine ? 'flex' : 'none';
+  $('view-order-text').textContent = orderLine;
+
+  $('view-row-phone').style.display = contact.phone ? 'flex' : 'none';
+  if (contact.phone) {
+    $('view-phone-link').href = phoneTelUrl(contact.phone);
+    $('view-phone-link').textContent = contact.phone;
+  }
+  $('view-row-telegram').style.display = contact.telegram_handle ? 'flex' : 'none';
+  if (contact.telegram_handle) {
+    $('view-telegram-link').href = telegramUrl(contact.telegram_handle);
+    $('view-telegram-link').textContent = contact.telegram_handle;
+  }
+  $('view-row-whatsapp').style.display = contact.whatsapp_handle ? 'flex' : 'none';
+  if (contact.whatsapp_handle) {
+    $('view-whatsapp-link').href = whatsappUrl(contact.whatsapp_handle);
+    $('view-whatsapp-link').textContent = contact.whatsapp_handle;
+  }
+  $('view-row-facebook').style.display = contact.facebook_handle ? 'flex' : 'none';
+  if (contact.facebook_handle) {
+    $('view-facebook-link').href = facebookUrl(contact.facebook_handle);
+    $('view-facebook-link').textContent = contact.facebook_handle;
+  }
+  $('view-row-province').style.display = contact.province ? 'flex' : 'none';
+  $('view-province-text').textContent = contact.province || '';
+  $('view-row-map').style.display = contact.map_link ? 'flex' : 'none';
+  if (contact.map_link) $('view-map-link').href = contact.map_link;
+
+  $('view-notes').style.display = contact.notes ? 'block' : 'none';
+  $('view-notes').textContent = contact.notes || '';
+
+  $('view-edit-btn').style.display = currentRole === 'limited' ? 'none' : 'inline-flex';
+  $('view-edit-btn').onclick = () => {
+    closeViewModal();
+    openModal(contact);
+  };
+
+  $('view-modal-backdrop').classList.add('open');
+}
+function closeViewModal() {
+  $('view-modal-backdrop').classList.remove('open');
+}
+$('view-modal-close').addEventListener('click', closeViewModal);
+
 /* ---------- Modal: add / edit ---------- */
 $('add-btn').addEventListener('click', () => openModal(null));
 $('fab-add').addEventListener('click', () => openModal(null));
@@ -1207,7 +1366,7 @@ function openModal(contact) {
   $('f-last-order').value = contact ? (contact.last_purchase_date || '') : '';
   $('f-ytd').value = contact && contact.ytd_total !== null && contact.ytd_total !== undefined ? contact.ytd_total : '';
   $('form-error').style.display = 'none';
-  $('delete-btn').style.display = contact ? 'inline-block' : 'none';
+  $('delete-btn').style.display = (contact && currentRole !== 'limited') ? 'inline-block' : 'none';
 
   renderGallery();
   $('modal-backdrop').classList.add('open');
