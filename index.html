@@ -303,7 +303,7 @@
   .settings-row p.label{font-size:14px;color:var(--charcoal);margin-bottom:2px;}
 
   /* ---------- View (read-only) modal ---------- */
-  .view-hero{aspect-ratio:16/9;background:var(--ivory-2);overflow:hidden;position:relative;}
+  .view-hero{aspect-ratio:16/9;background:var(--ivory-2);overflow:hidden;position:relative;cursor:zoom-in;}
   .view-hero img{width:100%;height:100%;object-fit:cover;display:block;}
   .view-thumbs{display:flex;gap:8px;overflow-x:auto;padding:12px 22px 0;}
   .view-thumbs img{width:64px;height:64px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;flex:0 0 auto;}
@@ -314,6 +314,49 @@
   .view-row a{color:var(--charcoal);text-decoration:none;}
   .view-row a:hover{color:var(--ochre-dark);}
   .view-notes{font-size:13.5px;color:#5a5545;line-height:1.5;margin:14px 0 0;}
+
+  /* ---------- Dashboard ---------- */
+  .dash-stats-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:24px;}
+  .dash-stat-box{background:var(--ivory-2);padding:14px 8px;text-align:center;}
+  .dash-stat-value{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 2px;color:var(--charcoal);}
+  .dash-stat-label{font-size:10.5px;color:#8b8474;margin:0;text-transform:uppercase;letter-spacing:.03em;}
+  .dash-tier-row, .dash-top-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-light);font-size:14px;}
+  .dash-tier-row:first-of-type, .dash-top-row:first-of-type{border-top:none;}
+  .dash-tier-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
+  .dash-tier-name{flex:1;}
+  .dash-tier-count{color:#8b8474;font-size:13px;}
+  .dash-top-rank{
+    width:20px;height:20px;border-radius:50%;background:var(--ochre);color:var(--charcoal);
+    font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  .dash-top-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dash-top-amount{font-weight:500;color:var(--charcoal);flex:0 0 auto;}
+
+  /* ---------- Photo lightbox ---------- */
+  .lightbox-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(15,16,10,0.94);
+    z-index:200;align-items:center;justify-content:center;
+  }
+  .lightbox-backdrop.open{display:flex;}
+  .lightbox-backdrop img{max-width:92vw;max-height:88vh;object-fit:contain;}
+  .lightbox-close{
+    position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;
+    width:44px;height:44px;background:rgba(255,255,255,0.12);color:#fff;border:none;
+    font-size:18px;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .lightbox-close:hover{background:rgba(255,255,255,0.22);}
+  .lightbox-nav{
+    position:absolute;top:50%;transform:translateY(-50%);
+    width:48px;height:48px;background:rgba(255,255,255,0.12);color:#fff;border:none;
+    font-size:16px;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .lightbox-nav:hover{background:rgba(255,255,255,0.22);}
+  .lightbox-prev{left:14px;}
+  .lightbox-next{right:14px;}
+  @media (max-width:600px){
+    .dash-stat-value{font-size:16px;}
+    .lightbox-nav{width:40px;height:40px;}
+  }
 
   @media (max-width:600px){
     header.topbar{padding:calc(10px + env(safe-area-inset-top)) 14px 10px;flex-wrap:nowrap;gap:8px;}
@@ -375,6 +418,7 @@
     <div class="topbar-actions">
       <input id="search-input" type="text" placeholder="Search customers…" />
       <div class="desktop-only-actions">
+        <button id="dashboard-btn" class="btn btn-ghost">Dashboard</button>
         <button id="export-btn" class="btn btn-ghost">Export</button>
         <button id="reorder-btn" class="btn btn-ghost">Reorder</button>
         <button id="settings-btn" class="btn btn-ghost">Settings</button>
@@ -384,6 +428,7 @@
       <div class="overflow-wrap">
         <button id="overflow-btn" aria-label="More options"><i class="fa-solid fa-ellipsis-vertical"></i></button>
         <div id="overflow-menu">
+          <button id="m-dashboard-btn"><i class="fa-solid fa-chart-simple"></i> Dashboard</button>
           <button id="m-export-btn"><i class="fa-solid fa-file-export"></i> Export CSV</button>
           <button id="m-reorder-btn"><i class="fa-solid fa-arrow-up-arrow-down"></i> Reorder</button>
           <button id="m-settings-btn"><i class="fa-solid fa-gear"></i> Settings</button>
@@ -574,6 +619,52 @@
       <button id="settings-modal-done" class="btn btn-primary">Done</button>
     </div>
   </div>
+</div>
+
+<!-- ============ DASHBOARD MODAL ============ -->
+<div id="dashboard-modal-backdrop" class="modal-backdrop">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-drag-handle"></div>
+    <div class="modal-head">
+      <h2>Dashboard</h2>
+      <button class="modal-close" id="dashboard-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="dash-stats-grid">
+        <div class="dash-stat-box">
+          <p class="dash-stat-value" id="dash-total-count">0</p>
+          <p class="dash-stat-label">Customers</p>
+        </div>
+        <div class="dash-stat-box">
+          <p class="dash-stat-value" id="dash-total-ytd">$0</p>
+          <p class="dash-stat-label">Total YTD</p>
+        </div>
+        <div class="dash-stat-box">
+          <p class="dash-stat-value" id="dash-avg-ytd">$0</p>
+          <p class="dash-stat-label">Avg / customer</p>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>By customer type</h3>
+        <div id="dash-tier-list"></div>
+      </div>
+      <div class="settings-section" style="margin-bottom:0;">
+        <h3>Top 5 by YTD total</h3>
+        <div id="dash-top-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <button id="dashboard-modal-done" class="btn btn-primary">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PHOTO LIGHTBOX ============ -->
+<div id="lightbox-backdrop" class="lightbox-backdrop">
+  <button id="lightbox-close" class="lightbox-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+  <button id="lightbox-prev" class="lightbox-nav lightbox-prev" aria-label="Previous photo"><i class="fa-solid fa-chevron-left"></i></button>
+  <img id="lightbox-img" src="" alt="" />
+  <button id="lightbox-next" class="lightbox-nav lightbox-next" aria-label="Next photo"><i class="fa-solid fa-chevron-right"></i></button>
 </div>
 
 <script>
@@ -1299,6 +1390,116 @@ $('reset-ytd-btn').addEventListener('click', async () => {
   }
 });
 
+/* ---------- Dashboard ---------- */
+$('dashboard-btn').addEventListener('click', openDashboard);
+$('m-dashboard-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); openDashboard(); });
+$('dashboard-modal-close').addEventListener('click', closeDashboard);
+$('dashboard-modal-done').addEventListener('click', closeDashboard);
+
+function openDashboard() {
+  renderDashboard();
+  $('dashboard-modal-backdrop').classList.add('open');
+}
+function closeDashboard() {
+  $('dashboard-modal-backdrop').classList.remove('open');
+}
+
+function renderDashboard() {
+  const total = contacts.length;
+  const totalYtd = contacts.reduce((sum, c) => sum + (Number(c.ytd_total) || 0), 0);
+  const avgYtd = total ? totalYtd / total : 0;
+
+  $('dash-total-count').textContent = total;
+  $('dash-total-ytd').textContent = formatYtd(totalYtd) || '$0';
+  $('dash-avg-ytd').textContent = formatYtd(avgYtd) || '$0';
+
+  const tierCounts = {};
+  contacts.forEach((c) => {
+    const t = c.tier || 'retail';
+    tierCounts[t] = (tierCounts[t] || 0) + 1;
+  });
+
+  const tierList = $('dash-tier-list');
+  tierList.innerHTML = '';
+  const tierKeys = Object.keys(tierCounts).sort();
+  if (!tierKeys.length) {
+    tierList.innerHTML = '<p class="hint" style="margin:0;">No customers yet.</p>';
+  } else {
+    tierKeys.forEach((t) => {
+      const row = document.createElement('div');
+      row.className = 'dash-tier-row';
+      row.innerHTML = `
+        <span class="dash-tier-dot" style="background:${colorForType(t)}"></span>
+        <span class="dash-tier-name">${escapeHtml(capitalize(t))}</span>
+        <span class="dash-tier-count">${tierCounts[t]}</span>
+      `;
+      tierList.appendChild(row);
+    });
+  }
+
+  const top5 = contacts
+    .filter((c) => c.ytd_total !== null && c.ytd_total !== undefined && Number(c.ytd_total) > 0)
+    .sort((a, b) => Number(b.ytd_total) - Number(a.ytd_total))
+    .slice(0, 5);
+
+  const topList = $('dash-top-list');
+  topList.innerHTML = '';
+  if (!top5.length) {
+    topList.innerHTML = '<p class="hint" style="margin:0;">No YTD totals recorded yet.</p>';
+  } else {
+    top5.forEach((c, i) => {
+      const label = c.company_name || c.name;
+      const row = document.createElement('div');
+      row.className = 'dash-top-row';
+      row.innerHTML = `
+        <span class="dash-top-rank">${i + 1}</span>
+        <span class="dash-top-name">${escapeHtml(label)}</span>
+        <span class="dash-top-amount">${formatYtd(c.ytd_total)}</span>
+      `;
+      topList.appendChild(row);
+    });
+  }
+}
+
+/* ---------- Photo lightbox ---------- */
+let lightboxPhotos = [];
+let lightboxIndex = 0;
+
+function openLightbox(photos, startIndex) {
+  if (!photos || !photos.length) return;
+  lightboxPhotos = photos;
+  lightboxIndex = Math.max(0, startIndex || 0);
+  renderLightbox();
+  $('lightbox-backdrop').classList.add('open');
+}
+function closeLightbox() {
+  $('lightbox-backdrop').classList.remove('open');
+}
+function renderLightbox() {
+  const photo = lightboxPhotos[lightboxIndex];
+  $('lightbox-img').src = photo ? photo.public_url : '';
+  const showNav = lightboxPhotos.length > 1;
+  $('lightbox-prev').style.display = showNav ? 'flex' : 'none';
+  $('lightbox-next').style.display = showNav ? 'flex' : 'none';
+}
+function lightboxStep(dir) {
+  if (!lightboxPhotos.length) return;
+  lightboxIndex = (lightboxIndex + dir + lightboxPhotos.length) % lightboxPhotos.length;
+  renderLightbox();
+}
+$('lightbox-close').addEventListener('click', closeLightbox);
+$('lightbox-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'lightbox-backdrop') closeLightbox();
+});
+$('lightbox-prev').addEventListener('click', (e) => { e.stopPropagation(); lightboxStep(-1); });
+$('lightbox-next').addEventListener('click', (e) => { e.stopPropagation(); lightboxStep(1); });
+document.addEventListener('keydown', (e) => {
+  if (!$('lightbox-backdrop').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  else if (e.key === 'ArrowLeft') lightboxStep(-1);
+  else if (e.key === 'ArrowRight') lightboxStep(1);
+});
+
 /* ---------- View (read-only) modal ---------- */
 function openViewModal(contact) {
   const photos = contact.contact_photos || [];
@@ -1316,6 +1517,11 @@ function openViewModal(contact) {
 
   $('view-hero-img').src = cover ? cover.public_url : '';
   $('view-hero').style.display = cover ? 'block' : 'none';
+  $('view-hero').onclick = () => {
+    if (!cover) return;
+    const startIdx = Math.max(0, photos.findIndex((p) => p.id === cover.id));
+    openLightbox(photos, startIdx);
+  };
 
   const thumbs = $('view-thumbs');
   thumbs.innerHTML = '';
@@ -1328,6 +1534,7 @@ function openViewModal(contact) {
         $('view-hero-img').src = p.public_url;
         thumbs.querySelectorAll('img').forEach((t) => t.classList.remove('active'));
         img.classList.add('active');
+        openLightbox(photos, photos.findIndex((ph) => ph.id === p.id));
       });
       thumbs.appendChild(img);
     });
