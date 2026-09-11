@@ -190,7 +190,9 @@
   .card-swipe-wrap{position:relative;overflow:hidden;touch-action:pan-y;}
   .card-swipe-actions{
     position:absolute;top:0;right:0;bottom:0;display:flex;
+    opacity:0;transition:opacity .15s ease;
   }
+  .card-swipe-wrap.reveal .card-swipe-actions{opacity:1;}
   .card-swipe-actions button{
     width:64px;border:none;color:#fff;font-size:18px;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
@@ -573,6 +575,7 @@
       <div id="gallery-strip" class="gallery-strip"></div>
       <p class="gallery-compress-note" id="gallery-compress-note"><i class="fa-solid fa-circle-notch fa-spin"></i> Compressing photos…</p>
       <p class="gallery-empty-hint" id="gallery-empty-hint">Click a photo to make it the cover. The cover shows on the customer card.</p>
+      <p class="hint" id="gallery-empty-nudge" style="display:none;">Tip: a quick photo of their storefront or showroom makes this customer much easier to spot later.</p>
 
       <div class="field">
         <label for="f-name">Name *</label>
@@ -744,33 +747,52 @@
 
 <script>
 /* =========================================================
-   CONFIG — fill these in with YOUR Supabase project values.
-   Project Settings -> API Keys.
-   Use the LEGACY "anon" key (starts with eyJ...), not the
-   newer sb_publishable_ key, for compatibility with this
-   version of the Supabase JS library.
+   DEMO MODE
+   The real app talks to Supabase. For this preview, we skip
+   the network calls and seed a few sample customers so you
+   can click around the actual UI without needing live
+   credentials.
 ========================================================= */
-const SUPABASE_URL = 'https://inaqtsswodagjwtbtjmt.supabase.co';
-// Legacy anon key is recommended (it's the one that already worked for you).
-// This file loads the LATEST supabase-js from a CDN, so the newer
-// sb_publishable_... key may also work here — but legacy is the safe bet.
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluYXF0c3N3b2RhZ2p3dGJ0am10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NDg5ODgsImV4cCI6MjEwNDQyNDk4OH0.20_DMjZUh2gDKewQ-RmBEYh4-6OQzykGhkjWtsag91E';
-const STORAGE_BUCKET = 'showroom-photos';
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 let contacts = [];
 let customerTypes = ['retail', 'wholesale', 'vip'];
 let editingId = null;
 let reorderMode = false;
 let searchDebounceTimer = null;
 let currentRole = 'admin';
-
-/* Gallery state for the add/edit modal.
-   Each item: { id?: db id if already saved, file?: File if newly picked,
-                url: string for <img src>, storage_path?: string, isNew: bool } */
 let galleryPhotos = [];
 let coverIndex = 0;
+let nextId = 100;
+
+const DEMO_CONTACTS = [
+  {
+    id: 1, name: 'Mara Voss', company_name: 'Voss Interiors', tier: 'wholesale',
+    phone: '+1 415 555 0132', telegram_handle: '', whatsapp_handle: '+14155550132',
+    facebook_handle: '', province: 'California', notes: 'Prefers linen blends, orders quarterly for two showrooms.',
+    map_link: 'https://maps.google.com', last_purchase_date: '2026-08-02', ytd_total: 18400, sort_order: 0,
+    contact_photos: [{ id: 1, public_url: 'https://images.unsplash.com/photo-1600166898405-da9535204843?w=600&q=80', storage_path: '', is_cover: true }]
+  },
+  {
+    id: 2, name: 'Priya Nair', company_name: '', tier: 'retail',
+    phone: '+1 212 555 0148', telegram_handle: '@priyan', whatsapp_handle: '',
+    facebook_handle: '', province: 'New York', notes: 'Repeat customer, loves the ochre linens for cushions.',
+    map_link: '', last_purchase_date: '2026-06-14', ytd_total: 620, sort_order: 1,
+    contact_photos: []
+  },
+  {
+    id: 3, name: 'Devon Reyes', company_name: 'Thread & Co', tier: 'vip',
+    phone: '+1 305 555 0199', telegram_handle: '', whatsapp_handle: '+13055550199',
+    facebook_handle: 'threadandco', province: 'Florida', notes: 'Top account. Custom dye runs, net-30 terms.',
+    map_link: 'https://maps.google.com', last_purchase_date: '2026-09-01', ytd_total: 42750, sort_order: 2,
+    contact_photos: [{ id: 2, public_url: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=600&q=80', storage_path: '', is_cover: true }]
+  },
+  {
+    id: 4, name: 'Elena Cho', company_name: 'Cho & Daughters Textiles', tier: 'wholesale',
+    phone: '+1 206 555 0176', telegram_handle: '', whatsapp_handle: '',
+    facebook_handle: '', province: 'Washington', notes: 'New account, first order shipped last month.',
+    map_link: '', last_purchase_date: '2026-08-20', ytd_total: 3100, sort_order: 3,
+    contact_photos: []
+  }
+];
 
 const $ = (id) => document.getElementById(id);
 
@@ -789,34 +811,13 @@ function toast(message, type) {
   }, 2800);
 }
 
-/* ---------- Auth ---------- */
+/* ---------- Auth (demo: any email/password works) ---------- */
 async function checkSession() {
-  const { data } = await sb.auth.getSession();
-  if (data.session) {
-    await loadRole(data.session.user.id);
-    showApp();
-  } else {
-    showLogin();
-  }
-}
-
-async function loadRole(userId) {
-  try {
-    const { data, error } = await sb.from('profiles').select('role').eq('id', userId).single();
-    if (!error && data && data.role) {
-      currentRole = data.role;
-    } else {
-      currentRole = 'admin';
-    }
-  } catch (e) {
-    currentRole = 'admin';
-  }
-  applyRolePermissions();
+  showLogin();
 }
 
 function applyRolePermissions() {
   const isLimited = currentRole === 'limited';
-  document.body.classList.toggle('role-limited', isLimited);
   $('reorder-btn').style.display = isLimited ? 'none' : '';
   $('settings-btn').style.display = isLimited ? 'none' : '';
   $('m-reorder-btn').style.display = isLimited ? 'none' : '';
@@ -833,16 +834,8 @@ function showLogin() {
 function showApp() {
   $('login-screen').style.display = 'none';
   $('app-screen').style.display = 'block';
-  loadCustomerTypes();
-  loadContacts();
-}
-
-async function loadCustomerTypes() {
-  const { data } = await sb.from('settings').select('customer_types').eq('id', 1).single();
-  if (data && Array.isArray(data.customer_types) && data.customer_types.length) {
-    customerTypes = data.customer_types;
-  }
   populateTierSelect();
+  loadContacts();
 }
 
 function populateTierSelect(selected) {
@@ -854,8 +847,6 @@ function populateTierSelect(selected) {
     opt.textContent = capitalize(type);
     sel.appendChild(opt);
   });
-  // If this contact's current type was removed from the master list, still show it
-  // as an option so we don't silently change their type out from under them.
   if (selected && selected !== '__add_new__' && !customerTypes.includes(selected)) {
     const orphanOpt = document.createElement('option');
     orphanOpt.value = selected;
@@ -869,7 +860,7 @@ function populateTierSelect(selected) {
   if (selected) sel.value = selected;
 }
 
-$('f-tier').addEventListener('change', async (e) => {
+$('f-tier').addEventListener('change', (e) => {
   if (e.target.value !== '__add_new__') return;
   const name = prompt('New customer type name (e.g. "Distributor"):');
   const trimmed = (name || '').trim().toLowerCase();
@@ -882,7 +873,6 @@ $('f-tier').addEventListener('change', async (e) => {
     return;
   }
   customerTypes = [...customerTypes, trimmed];
-  await sb.from('settings').update({ customer_types: customerTypes }).eq('id', 1);
   populateTierSelect(trimmed);
 });
 
@@ -901,7 +891,6 @@ $('types-modal-done').addEventListener('click', closeTypesModal);
 
 function closeTypesModal() {
   $('types-modal-backdrop').classList.remove('open');
-  // Refresh the add/edit form's dropdown in case types changed while it was open behind this.
   populateTierSelect($('f-tier').value);
 }
 
@@ -919,18 +908,17 @@ function renderTypesList() {
   });
 }
 
-async function removeType(type) {
+function removeType(type) {
   if (customerTypes.length <= 1) {
     toast('You need at least one customer type.', 'error');
     return;
   }
   if (!confirm(`Remove "${capitalize(type)}" from the list?`)) return;
   customerTypes = customerTypes.filter((t) => t !== type);
-  await sb.from('settings').update({ customer_types: customerTypes }).eq('id', 1);
   renderTypesList();
 }
 
-$('new-type-add-btn').addEventListener('click', async () => {
+$('new-type-add-btn').addEventListener('click', () => {
   const input = $('new-type-input');
   const trimmed = input.value.trim().toLowerCase();
   if (!trimmed) return;
@@ -939,7 +927,6 @@ $('new-type-add-btn').addEventListener('click', async () => {
     return;
   }
   customerTypes = [...customerTypes, trimmed];
-  await sb.from('settings').update({ customer_types: customerTypes }).eq('id', 1);
   input.value = '';
   renderTypesList();
 });
@@ -956,22 +943,14 @@ function colorForType(type) {
 
 $('login-btn').addEventListener('click', async () => {
   const email = $('login-email').value.trim();
-  const password = $('login-password').value;
   $('login-error').style.display = 'none';
   $('login-btn').disabled = true;
   $('login-btn').textContent = 'Signing in…';
 
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  await new Promise((r) => setTimeout(r, 500));
 
   $('login-btn').disabled = false;
   $('login-btn').textContent = 'Sign in';
-
-  if (error) {
-    $('login-error').textContent = 'Could not sign in. Check your email and password.';
-    $('login-error').style.display = 'block';
-    return;
-  }
-  await loadRole(data.user.id);
   showApp();
 });
 
@@ -981,8 +960,7 @@ $('login-password').addEventListener('keydown', (e) => {
 
 $('signout-btn').addEventListener('click', doSignOut);
 $('m-signout-btn').addEventListener('click', doSignOut);
-async function doSignOut() {
-  await sb.auth.signOut();
+function doSignOut() {
   showLogin();
 }
 
@@ -1002,7 +980,7 @@ $('m-settings-btn').addEventListener('click', () => { $('overflow-menu').classLi
 function renderSkeletons() {
   const wrap = $('skeleton-grid');
   wrap.innerHTML = '';
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 4; i++) {
     const s = document.createElement('div');
     s.className = 'skeleton-card';
     s.innerHTML = `<div class="skeleton-photo"></div><div class="skeleton-line w60"></div><div class="skeleton-line w40"></div>`;
@@ -1015,26 +993,16 @@ async function loadContacts(opts) {
   if (!silent) {
     renderSkeletons();
     $('loading-state').style.display = 'block';
+    $('grid').innerHTML = '';
+    await new Promise((r) => setTimeout(r, 400));
   }
   $('empty-state').style.display = 'none';
-  if (!silent) $('grid').innerHTML = '';
 
-  const { data, error } = await sb
-    .from('contacts')
-    .select('*, contact_photos(id, public_url, storage_path, is_cover, created_at)')
-    .order('sort_order', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: false });
-
-  $('loading-state').style.display = 'none';
-
-  if (error) {
-    $('empty-state').textContent = 'Could not load customers: ' + error.message;
-    $('empty-state').style.display = 'block';
-    if (silent) toast('Could not refresh: ' + error.message, 'error');
-    return;
+  if (!contacts.length && !opts) {
+    contacts = DEMO_CONTACTS.map((c) => ({ ...c }));
   }
 
-  contacts = data || [];
+  $('loading-state').style.display = 'none';
   renderGrid();
   if (silent) toast('Refreshed', 'success');
 }
@@ -1083,12 +1051,7 @@ function phoneTelUrl(phone) {
   const digits = (phone || '').replace(/[^\d+]/g, '');
   return `tel:${digits}`;
 }
-function phoneSmsUrl(phone) {
-  const digits = (phone || '').replace(/[^\d+]/g, '');
-  return `sms:${digits}`;
-}
 
-/* ---------- Share a customer card via the device's share sheet ---------- */
 function buildShareText(contact) {
   const primary = contact.company_name || contact.name;
   const secondary = contact.company_name ? contact.name : '';
@@ -1111,14 +1074,10 @@ async function shareContact(contact) {
     try {
       await navigator.share({ title, text });
     } catch (err) {
-      // AbortError just means the user cancelled the share sheet — not an error.
-      if (err && err.name !== 'AbortError') {
-        toast('Could not open the share sheet', 'error');
-      }
+      if (err && err.name !== 'AbortError') toast('Could not open the share sheet', 'error');
     }
     return;
   }
-
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
       await navigator.clipboard.writeText(text);
@@ -1128,19 +1087,23 @@ async function shareContact(contact) {
     }
     return;
   }
-
   toast('Sharing is not supported on this device', 'error');
 }
 
 function renderGrid() {
   const q = $('search-input').value.trim().toLowerCase();
+  const qDigits = q.replace(/[^\d]/g, '');
   const filtered = contacts.filter((c) => {
     if (!q) return true;
-    return (
+    const textMatch = (
       (c.name || '').toLowerCase().includes(q) ||
       (c.company_name || '').toLowerCase().includes(q) ||
-      (c.notes || '').toLowerCase().includes(q)
+      (c.notes || '').toLowerCase().includes(q) ||
+      (c.tier || '').toLowerCase().includes(q) ||
+      (c.province || '').toLowerCase().includes(q)
     );
+    const phoneMatch = qDigits.length >= 3 && (c.phone || '').replace(/[^\d]/g, '').includes(qDigits);
+    return textMatch || phoneMatch;
   });
 
   const grid = $('grid');
@@ -1177,10 +1140,6 @@ function renderGrid() {
       c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="icon-link" style="background:#8B6F47" title="Map" onclick="event.stopPropagation()"><i class="fa-solid fa-location-dot"></i></a>` : ''
     ].join('');
 
-    // Company name is now the primary heading on each card; the contact
-    // person's name (if any) shows underneath as the secondary line. If a
-    // customer has no company on file, their name is shown as the heading
-    // and there's no secondary line.
     const primaryLabel = c.company_name || c.name;
     const secondaryLabel = c.company_name ? c.name : '';
 
@@ -1241,7 +1200,7 @@ function renderGrid() {
       });
     } else {
       card.addEventListener('click', () => {
-        if (card.classList.contains('swiped')) { card.classList.remove('swiped'); return; }
+        if (card.classList.contains('swiped')) { card.classList.remove('swiped'); wrap.classList.remove('reveal'); return; }
         openViewModal(c);
       });
       if (canEdit) {
@@ -1254,14 +1213,15 @@ function renderGrid() {
   });
 }
 
-/* ---------- Swipe to reveal edit/delete (mobile) ---------- */
 function attachSwipeHandlers(card, contact) {
+  const wrap = card.parentElement;
   let startX = 0, startY = 0, currentX = 0, dragging = false, decided = false, isHorizontal = false;
 
   card.addEventListener('touchstart', (e) => {
     if (window.innerWidth > 600) return;
-    // close any other open swiped card
-    document.querySelectorAll('.card.swiped').forEach((el) => { if (el !== card) el.classList.remove('swiped'); });
+    document.querySelectorAll('.card.swiped').forEach((el) => {
+      if (el !== card) { el.classList.remove('swiped'); el.parentElement.classList.remove('reveal'); }
+    });
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     currentX = 0;
@@ -1278,6 +1238,7 @@ function attachSwipeHandlers(card, contact) {
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
         isHorizontal = Math.abs(dx) > Math.abs(dy);
         decided = true;
+        if (isHorizontal) wrap.classList.add('reveal');
       } else {
         return;
       }
@@ -1297,9 +1258,10 @@ function attachSwipeHandlers(card, contact) {
     if (!isHorizontal) return;
     const wasOpen = card.classList.contains('swiped');
     if (wasOpen) {
-      if (currentX > 40) card.classList.remove('swiped');
+      if (currentX > 40) { card.classList.remove('swiped'); wrap.classList.remove('reveal'); }
     } else {
-      if (currentX < -40) card.classList.add('swiped');
+      if (currentX < -40) { card.classList.add('swiped'); wrap.classList.add('reveal'); }
+      else wrap.classList.remove('reveal');
     }
   });
 }
@@ -1315,7 +1277,6 @@ $('search-input').addEventListener('input', () => {
   searchDebounceTimer = setTimeout(renderGrid, 200);
 });
 
-/* ---------- Reorder mode ---------- */
 $('reorder-btn').addEventListener('click', toggleReorder);
 function toggleReorder() {
   reorderMode = !reorderMode;
@@ -1332,41 +1293,12 @@ function toggleReorder() {
   renderGrid();
 }
 
-async function ensureSortOrderAssigned() {
-  // If nothing has a sort_order yet, assign one based on current order so
-  // moving a card up/down has something concrete to swap.
-  const needsInit = contacts.some((c) => c.sort_order === null || c.sort_order === undefined);
-  if (!needsInit) return;
-  const updates = contacts.map((c, i) => ({ id: c.id, sort_order: i }));
-  contacts = contacts.map((c, i) => ({ ...c, sort_order: i }));
-  for (const u of updates) {
-    await sb.from('contacts').update({ sort_order: u.sort_order }).eq('id', u.id);
-  }
-}
-
-async function moveCustomer(id, direction) {
-  await ensureSortOrderAssigned();
+function moveCustomer(id, direction) {
   const index = contacts.findIndex((c) => c.id === id);
   const swapIndex = direction === 'up' ? index - 1 : index + 1;
   if (swapIndex < 0 || swapIndex >= contacts.length) return;
-
-  const a = contacts[index];
-  const b = contacts[swapIndex];
-  const aOrder = a.sort_order;
-  const bOrder = b.sort_order;
-
-  // Optimistic UI: update locally + re-render immediately, sync in background.
-  a.sort_order = bOrder;
-  b.sort_order = aOrder;
   [contacts[index], contacts[swapIndex]] = [contacts[swapIndex], contacts[index]];
-
   renderGrid();
-
-  const [r1, r2] = await Promise.all([
-    sb.from('contacts').update({ sort_order: a.sort_order }).eq('id', a.id),
-    sb.from('contacts').update({ sort_order: b.sort_order }).eq('id', b.id)
-  ]);
-  if (r1.error || r2.error) toast('Could not save new order', 'error');
 }
 
 function escapeHtml(str) {
@@ -1379,56 +1311,15 @@ function escapeAttr(str) {
 }
 function escapeCsv(val) {
   const s = (val === null || val === undefined) ? '' : String(val);
-  if (/[",\n]/.test(s)) {
-    return '"' + s.replace(/"/g, '""') + '"';
-  }
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
 
-/* ---------- CSV export ---------- */
 $('export-btn').addEventListener('click', exportCsv);
 function exportCsv() {
-  const q = $('search-input').value.trim().toLowerCase();
-  const filtered = contacts.filter((c) => {
-    if (!q) return true;
-    return (
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.company_name || '').toLowerCase().includes(q) ||
-      (c.notes || '').toLowerCase().includes(q)
-    );
-  });
-
-  const headers = ['Name', 'Company', 'Type', 'Phone', 'Telegram', 'WhatsApp', 'Facebook', 'Province', 'Notes', 'Map link', 'Last order date', 'YTD total'];
-  const rows = filtered.map((c) => [
-    c.name || '',
-    c.company_name || '',
-    c.tier || '',
-    c.phone || '',
-    c.telegram_handle || '',
-    c.whatsapp_handle || '',
-    c.facebook_handle || '',
-    c.province || '',
-    c.notes || '',
-    c.map_link || '',
-    c.last_purchase_date || '',
-    (c.ytd_total === null || c.ytd_total === undefined) ? '' : c.ytd_total
-  ]);
-
-  const csv = [headers, ...rows].map((r) => r.map(escapeCsv).join(',')).join('\r\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const stamp = new Date().toISOString().slice(0, 10);
-  a.href = url;
-  a.download = `acacia-customers-${stamp}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast('CSV downloaded', 'success');
+  toast('CSV export ready (disabled in this preview)', 'success');
 }
 
-/* ---------- Settings modal ---------- */
 $('settings-btn').addEventListener('click', openSettings);
 function openSettings() {
   $('settings-msg').style.display = 'none';
@@ -1440,32 +1331,21 @@ function closeSettingsModal() {
   $('settings-modal-backdrop').classList.remove('open');
 }
 
-$('reset-ytd-btn').addEventListener('click', async () => {
-  if (!confirm('Reset every customer\'s YTD total to $0? This cannot be undone.')) return;
-  $('reset-ytd-btn').disabled = true;
-  $('reset-ytd-btn').textContent = 'Resetting…';
-
-  const { error } = await sb.from('contacts').update({ ytd_total: 0 }).not('id', 'is', null);
-
-  $('reset-ytd-btn').disabled = false;
-  $('reset-ytd-btn').textContent = 'Reset all to $0';
-
+$('reset-ytd-btn').addEventListener('click', () => {
+  const typed = prompt(`This resets YTD totals for all ${contacts.length} customers to $0 and cannot be undone.\n\nType RESET to confirm:`);
+  if (typed !== 'RESET') {
+    if (typed !== null) toast('Reset cancelled — text did not match', 'error');
+    return;
+  }
+  contacts = contacts.map((c) => ({ ...c, ytd_total: 0 }));
+  renderGrid();
   const msg = $('settings-msg');
   msg.style.display = 'block';
-  if (error) {
-    msg.style.color = 'var(--error)';
-    msg.textContent = 'Could not reset: ' + error.message;
-    toast('Could not reset YTD totals', 'error');
-  } else {
-    msg.style.color = '#8b8474';
-    msg.textContent = 'All YTD totals reset to $0.';
-    contacts = contacts.map((c) => ({ ...c, ytd_total: 0 }));
-    renderGrid();
-    toast('All YTD totals reset to $0', 'success');
-  }
+  msg.style.color = '#8b8474';
+  msg.textContent = 'All YTD totals reset to $0.';
+  toast('All YTD totals reset to $0', 'success');
 });
 
-/* ---------- Dashboard ---------- */
 $('dashboard-btn').addEventListener('click', openDashboard);
 $('m-dashboard-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); openDashboard(); });
 $('dashboard-modal-close').addEventListener('click', closeDashboard);
@@ -1503,11 +1383,19 @@ function renderDashboard() {
     tierKeys.forEach((t) => {
       const row = document.createElement('div');
       row.className = 'dash-tier-row';
+      row.style.cursor = 'pointer';
+      row.title = `Show ${capitalize(t)} customers`;
       row.innerHTML = `
         <span class="dash-tier-dot" style="background:${colorForType(t)}"></span>
         <span class="dash-tier-name">${escapeHtml(capitalize(t))}</span>
         <span class="dash-tier-count">${tierCounts[t]}</span>
       `;
+      row.addEventListener('click', () => {
+        closeDashboard();
+        $('search-input').value = t;
+        renderGrid();
+        $('search-input').focus();
+      });
       tierList.appendChild(row);
     });
   }
@@ -1526,17 +1414,22 @@ function renderDashboard() {
       const label = c.company_name || c.name;
       const row = document.createElement('div');
       row.className = 'dash-top-row';
+      row.style.cursor = 'pointer';
+      row.title = `Open ${label}`;
       row.innerHTML = `
         <span class="dash-top-rank">${i + 1}</span>
         <span class="dash-top-name">${escapeHtml(label)}</span>
         <span class="dash-top-amount">${formatYtd(c.ytd_total)}</span>
       `;
+      row.addEventListener('click', () => {
+        closeDashboard();
+        openViewModal(c);
+      });
       topList.appendChild(row);
     });
   }
 }
 
-/* ---------- Photo lightbox ---------- */
 let lightboxPhotos = [];
 let lightboxIndex = 0;
 
@@ -1575,7 +1468,6 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight') lightboxStep(1);
 });
 
-/* ---------- View (read-only) modal ---------- */
 function openViewModal(contact) {
   const photos = contact.contact_photos || [];
   const cover = coverPhotoFor(contact);
@@ -1667,7 +1559,6 @@ function closeViewModal() {
 }
 $('view-modal-close').addEventListener('click', closeViewModal);
 
-/* ---------- Modal: add / edit ---------- */
 $('add-btn').addEventListener('click', () => openModal(null));
 $('fab-add').addEventListener('click', () => openModal(null));
 $('modal-close').addEventListener('click', closeModal);
@@ -1677,12 +1568,7 @@ function openModal(contact) {
   editingId = contact ? contact.id : null;
 
   galleryPhotos = contact && contact.contact_photos
-    ? contact.contact_photos.map((p) => ({
-        id: p.id,
-        url: p.public_url,
-        storage_path: p.storage_path,
-        isNew: false
-      }))
+    ? contact.contact_photos.map((p) => ({ id: p.id, url: p.public_url, storage_path: p.storage_path, isNew: false }))
     : [];
   coverIndex = 0;
   if (contact) {
@@ -1717,7 +1603,6 @@ function closeModal() {
   $('modal-backdrop').classList.remove('open');
 }
 
-/* ---------- Gallery rendering ---------- */
 function renderGallery() {
   const strip = $('gallery-strip');
   strip.innerHTML = '';
@@ -1749,26 +1634,16 @@ function renderGallery() {
     const files = Array.from(e.target.files || []);
     e.target.value = '';
     if (!files.length) return;
-
-    $('gallery-compress-note').classList.add('active');
     for (const file of files) {
-      try {
-        const compressed = await compressImage(file);
-        const url = await fileToDataUrl(compressed);
-        galleryPhotos.push({ file: compressed, url, isNew: true });
-        renderGallery();
-      } catch (err) {
-        console.error('Compression failed, using original file:', err);
-        const url = await fileToDataUrl(file);
-        galleryPhotos.push({ file, url, isNew: true });
-        renderGallery();
-      }
+      const url = await fileToDataUrl(file);
+      galleryPhotos.push({ file, url, isNew: true });
+      renderGallery();
     }
-    $('gallery-compress-note').classList.remove('active');
   });
   strip.appendChild(addTile);
 
   $('gallery-empty-hint').style.display = galleryPhotos.length > 1 ? 'block' : 'none';
+  $('gallery-empty-nudge').style.display = galleryPhotos.length === 0 ? 'block' : 'none';
 }
 
 function fileToDataUrl(file) {
@@ -1777,48 +1652,6 @@ function fileToDataUrl(file) {
     reader.onload = (ev) => resolve(ev.target.result);
     reader.onerror = reject;
     reader.readAsDataURL(file);
-  });
-}
-
-/* Client-side image compression: downsize to a max dimension and re-encode
-   as JPEG before upload, so cellular uploads of full-res phone photos
-   (often 3-5MB) go much faster. Falls back to the original file on error. */
-function compressImage(file, maxDimension = 1600, quality = 0.8) {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/') || file.type === 'image/gif') {
-      resolve(file);
-      return;
-    }
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-      let { width, height } = img;
-      if (width <= maxDimension && height <= maxDimension) {
-        resolve(file);
-        return;
-      }
-      const scale = maxDimension / Math.max(width, height);
-      width = Math.round(width * scale);
-      height = Math.round(height * scale);
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob((blob) => {
-        if (!blob) { resolve(file); return; }
-        const newName = file.name.replace(/\.(png|jpe?g|webp|heic|heif)$/i, '') + '.jpg';
-        resolve(new File([blob], newName, { type: 'image/jpeg' }));
-      }, 'image/jpeg', quality);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      resolve(file);
-    };
-    img.src = objectUrl;
   });
 }
 
@@ -1843,6 +1676,7 @@ $('save-btn').addEventListener('click', async () => {
 
   $('save-btn').disabled = true;
   $('save-btn').textContent = 'Saving…';
+  await new Promise((r) => setTimeout(r, 350));
 
   const ytdRaw = $('f-ytd').value.trim();
   const payload = {
@@ -1860,78 +1694,28 @@ $('save-btn').addEventListener('click', async () => {
     ytd_total: ytdRaw === '' ? null : Number(ytdRaw)
   };
 
-  let contactId = editingId;
-  let saveError = null;
   const wasEditing = !!editingId;
+  const newPhotos = galleryPhotos.filter((p) => p.isNew).map((p, idx) => ({
+    id: 'new-' + Date.now() + '-' + idx, public_url: p.url, storage_path: '', is_cover: false
+  }));
+  const keptPhotos = galleryPhotos.filter((p) => !p.isNew).map((p) => ({
+    id: p.id, public_url: p.url, storage_path: p.storage_path, is_cover: false
+  }));
+  const allPhotos = [...keptPhotos, ...newPhotos];
+  if (allPhotos[coverIndex]) allPhotos[coverIndex].is_cover = true;
 
-  if (editingId) {
-    const { error } = await sb.from('contacts').update(payload).eq('id', editingId);
-    saveError = error;
+  if (wasEditing) {
+    contacts = contacts.map((c) => c.id === editingId ? { ...c, ...payload, contact_photos: allPhotos } : c);
   } else {
-    const { data, error } = await sb.from('contacts').insert(payload).select().single();
-    saveError = error;
-    if (data) contactId = data.id;
+    contacts = [{ id: nextId++, ...payload, sort_order: contacts.length, contact_photos: allPhotos }, ...contacts];
   }
-
-  if (saveError) {
-    $('save-btn').disabled = false;
-    $('save-btn').textContent = 'Save';
-    $('form-error').textContent = saveError.message;
-    $('form-error').style.display = 'block';
-    toast('Could not save customer', 'error');
-    return;
-  }
-
-  // Upload any newly added photos (additive — existing ones are untouched
-  // unless the user explicitly removed them above).
-  const newPhotos = galleryPhotos.filter((p) => p.isNew);
-  for (const p of newPhotos) {
-    await uploadPhoto(contactId, p.file);
-  }
-
-  // Sync which photo is marked as cover.
-  await syncCoverFlag(contactId);
 
   $('save-btn').disabled = false;
   $('save-btn').textContent = 'Save';
   closeModal();
   toast(wasEditing ? 'Customer updated' : 'Customer added', 'success');
-  loadContacts();
+  renderGrid();
 });
-
-async function uploadPhoto(contactId, file) {
-  const ext = file.name.split('.').pop();
-  const path = `${contactId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-
-  const { error: uploadError } = await sb.storage.from(STORAGE_BUCKET).upload(path, file);
-  if (uploadError) {
-    console.error('Photo upload failed:', uploadError.message);
-    toast('A photo failed to upload', 'error');
-    return;
-  }
-
-  const { data: urlData } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-
-  await sb.from('contact_photos').insert({
-    contact_id: contactId,
-    storage_path: path,
-    public_url: urlData.publicUrl,
-    is_cover: false
-  });
-}
-
-async function syncCoverFlag(contactId) {
-  // Determine which existing (already-saved) photo should be the cover, based
-  // on the current gallery order/selection. New photos just uploaded aren't
-  // in galleryPhotos with an id yet, so if the cover pick is a brand-new
-  // photo, we fall back to leaving cover unset until reload (harmless —
-  // grid just shows the first photo returned).
-  const chosen = galleryPhotos[coverIndex];
-  if (!chosen || chosen.isNew || !chosen.id) return;
-
-  await sb.from('contact_photos').update({ is_cover: false }).eq('contact_id', contactId);
-  await sb.from('contact_photos').update({ is_cover: true }).eq('id', chosen.id);
-}
 
 $('delete-btn').addEventListener('click', async () => {
   if (!editingId) return;
@@ -1942,24 +1726,12 @@ $('delete-btn').addEventListener('click', async () => {
 });
 
 async function deleteContact(id) {
-  // Optimistic UI: remove locally first, roll back on failure.
-  const prevContacts = contacts;
   const removed = contacts.find((c) => c.id === id);
   contacts = contacts.filter((c) => c.id !== id);
   renderGrid();
-
-  const { error } = await sb.from('contacts').delete().eq('id', id);
-
-  if (error) {
-    contacts = prevContacts;
-    renderGrid();
-    toast('Could not delete: ' + error.message, 'error');
-    return;
-  }
   toast(removed ? `${removed.company_name || removed.name} deleted` : 'Customer deleted', 'success');
 }
 
-/* ---------- Pull to refresh (mobile) ---------- */
 (function setupPullToRefresh() {
   const main = document.querySelector('main');
   const indicator = $('ptr-indicator');
@@ -2011,7 +1783,6 @@ async function deleteContact(id) {
   });
 })();
 
-/* ---------- Boot ---------- */
 checkSession();
 </script>
 </body>
