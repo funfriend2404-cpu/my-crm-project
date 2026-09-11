@@ -249,7 +249,7 @@
 
   /* ---------- Floating Add button (mobile) ---------- */
   #fab-add{
-    display:none;position:fixed;right:20px;bottom:24px;z-index:20;
+    display:flex;position:fixed;right:20px;bottom:24px;z-index:20;
     width:56px;height:56px;border-radius:50%;
     background:linear-gradient(180deg, #C99862 0%, var(--ochre) 55%, var(--ochre-dark) 100%);
     color:var(--charcoal);
@@ -418,6 +418,59 @@
   .dash-top-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .dash-top-amount{font-weight:500;color:var(--charcoal);flex:0 0 auto;}
 
+  /* ---------- Sparkline (dashboard) ---------- */
+  .sparkline-wrap svg{width:100%;height:60px;display:block;}
+  .sparkline-note{font-size:11px;color:#8b8474;margin-top:6px;}
+
+  /* ---------- Icon buttons (header) ---------- */
+  .icon-btn{
+    width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid var(--border-1);color:var(--text-1);
+    font-size:16px;cursor:pointer;flex:0 0 auto;
+  }
+  .icon-btn:hover{background:var(--surface-2);}
+
+  /* ---------- Collapsible header search ---------- */
+  .search-wrap{display:flex;align-items:center;gap:0;}
+  .search-wrap #search-input{
+    width:0;min-width:0;padding:0;border:none;opacity:0;
+    transition:width .2s ease, padding .2s ease, opacity .15s ease;
+  }
+  .search-wrap.search-open #search-input{
+    width:200px;padding:9px 12px;border:1px solid var(--border-1);opacity:1;margin-left:8px;
+  }
+
+  /* ---------- Filters row / badge ---------- */
+  .filters-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .btn-small{padding:7px 12px;font-size:13px;min-height:36px;}
+  .filters-badge-inline{
+    display:inline-flex;align-items:center;justify-content:center;margin-left:6px;
+    width:18px;height:18px;border-radius:50%;background:var(--ochre);color:var(--charcoal);
+    font-size:11px;font-weight:600;
+  }
+  .segmented{display:flex;border:1px solid var(--line-light);overflow:hidden;}
+  .segmented button{
+    flex:1;padding:9px 10px;background:#fff;border:none;font-family:inherit;font-size:13px;
+    color:#5a5545;cursor:pointer;border-right:1px solid var(--line-light);min-height:40px;
+  }
+  .segmented button:last-child{border-right:none;}
+  .segmented button.active{background:var(--ochre);color:var(--charcoal);font-weight:500;}
+
+  /* ---------- Reorder banner ---------- */
+  .reorder-banner{
+    display:none;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--ivory-2);border:1px solid var(--line-light);padding:10px 14px;
+    margin-bottom:14px;font-size:13px;color:#5a5545;
+  }
+
+  /* ---------- CSV import ---------- */
+  .csv-preview{border:1px solid var(--line-light);max-height:220px;overflow-y:auto;margin:12px 0;font-size:12.5px;}
+  .csv-preview-row{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-top:1px solid var(--line-light);}
+  .csv-preview-row:first-child{border-top:none;}
+  .csv-preview-row.bad{color:var(--error);}
+  .file-choose-label{position:relative;display:inline-flex;overflow:hidden;}
+  .file-choose-label input[type="file"]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+
   /* ---------- Photo lightbox ---------- */
   .lightbox-backdrop{
     display:none;position:fixed;inset:0;background:rgba(15,16,10,0.94);
@@ -447,12 +500,9 @@
   @media (max-width:600px){
     header.topbar{padding:calc(10px + env(safe-area-inset-top)) 14px 10px;flex-wrap:nowrap;gap:8px;}
     header.topbar .wordmark{font-size:17px;}
-    .topbar-actions{width:100%;display:flex;flex-wrap:nowrap;order:1;}
-    #search-input{flex:1;width:auto;min-width:0;}
-    .desktop-only-actions{display:none;}
-    .overflow-wrap{display:block;}
-    #add-btn{display:none;}
-    #fab-add{display:flex;}
+    .topbar-actions{width:100%;display:flex;flex-wrap:nowrap;order:1;justify-content:flex-end;}
+    .search-wrap.search-open{flex:1;}
+    .search-wrap.search-open #search-input{flex:1;width:auto;min-width:0;}
     main{padding:14px;padding-bottom:110px;}
     .grid{grid-template-columns:1fr;gap:12px;}
     .grid.two-col{grid-template-columns:repeat(2, 1fr);}
@@ -502,29 +552,26 @@
   <header class="topbar">
     <div class="wordmark display">Acacia <span>Fabrics</span></div>
     <div class="topbar-actions">
-      <input id="search-input" type="text" placeholder="Search customers…" />
-      <div class="desktop-only-actions">
-        <button id="dashboard-btn" class="btn btn-ghost">Dashboard</button>
-        <button id="export-btn" class="btn btn-ghost">Export</button>
-        <button id="reorder-btn" class="btn btn-ghost">Reorder</button>
-        <button id="settings-btn" class="btn btn-ghost">Settings</button>
-        <button id="add-btn" class="btn btn-primary">+ Add customer</button>
-        <button id="signout-btn" class="signout-link">Sign out</button>
+      <button id="dashboard-btn" class="btn btn-ghost">Dashboard</button>
+      <div class="search-wrap" id="search-wrap">
+        <button id="search-toggle-btn" class="icon-btn" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <input id="search-input" type="text" placeholder="Search customers…" />
       </div>
-      <div class="overflow-wrap">
-        <button id="overflow-btn" aria-label="More options"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-        <div id="overflow-menu">
-          <button id="m-dashboard-btn"><i class="fa-solid fa-chart-simple"></i> Dashboard</button>
-          <button id="m-export-btn"><i class="fa-solid fa-file-export"></i> Export CSV</button>
-          <button id="m-reorder-btn"><i class="fa-solid fa-arrow-up-arrow-down"></i> Reorder</button>
-          <button id="m-settings-btn"><i class="fa-solid fa-gear"></i> Settings</button>
-          <button id="m-signout-btn"><i class="fa-solid fa-right-from-bracket"></i> Sign out</button>
-        </div>
-      </div>
+      <button id="settings-btn" class="icon-btn" aria-label="Settings"><i class="fa-solid fa-gear"></i></button>
     </div>
   </header>
 
   <main>
+    <div class="filters-row" id="filters-row">
+      <button id="filters-btn" class="btn btn-ghost btn-small">
+        <i class="fa-solid fa-sliders"></i> Filters<span id="filters-badge" class="filters-badge-inline" style="display:none;"></span>
+      </button>
+      <button id="clear-filters-btn" class="btn btn-ghost btn-small" style="display:none;">Clear filters</button>
+    </div>
+    <div id="reorder-banner" class="reorder-banner">
+      <span>Reorder mode — use the arrows on each card to move it.</span>
+      <button id="reorder-done-btn" class="btn btn-primary btn-small">Done</button>
+    </div>
     <div id="ptr-indicator"><i class="fa-solid fa-arrow-down"></i> <span id="ptr-label">Pull to refresh</span></div>
     <div id="loading-state" style="display:none;">
       <div class="grid" id="skeleton-grid"></div>
@@ -622,7 +669,7 @@
       </div>
       <div class="row-2">
         <div class="field">
-          <label for="f-province">Province</label>
+          <label for="f-province">City / Province</label>
           <input id="f-province" type="text" />
         </div>
         <div class="field"></div>
@@ -714,6 +761,42 @@
         <button id="reset-ytd-btn" class="btn btn-ghost" style="border-color:var(--error);color:var(--error);">Reset all to $0</button>
       </div>
       <p id="settings-msg" class="hint" style="display:none;"></p>
+      <div class="settings-section">
+        <h3>Data</h3>
+        <div class="settings-row">
+          <div>
+            <p class="label">Export CSV</p>
+            <p>Download customers matching your current filters.</p>
+          </div>
+        </div>
+        <button id="export-btn" class="btn btn-ghost">Export CSV</button>
+
+        <div class="settings-row" style="margin-top:14px;">
+          <div>
+            <p class="label">Import CSV</p>
+            <p>Bulk-add customers from a CSV with the same columns as the export.</p>
+          </div>
+        </div>
+        <label class="btn btn-ghost file-choose-label">
+          Choose CSV file
+          <input id="csv-import-input" type="file" accept=".csv,text/csv" />
+        </label>
+        <div id="csv-import-preview" class="csv-preview" style="display:none;"></div>
+        <p id="csv-import-summary" class="hint" style="display:none;"></p>
+        <button id="csv-import-confirm-btn" class="btn btn-primary" style="display:none;margin-top:10px;">Import</button>
+
+        <div class="settings-row" style="margin-top:14px;">
+          <div>
+            <p class="label">Reorder customers</p>
+            <p>Manually set the order customer cards are shown in.</p>
+          </div>
+        </div>
+        <button id="reorder-btn" class="btn btn-ghost">Reorder</button>
+      </div>
+      <div class="settings-section" style="margin-bottom:0;">
+        <h3>Account</h3>
+        <button id="signout-btn" class="btn btn-ghost" style="border-color:var(--error);color:var(--error);">Sign out</button>
+      </div>
     </div>
     <div class="modal-footer" style="justify-content:flex-end;">
       <button id="settings-modal-done" class="btn btn-primary">Done</button>
@@ -745,11 +828,16 @@
         </div>
       </div>
       <div class="settings-section">
+        <h3>Monthly order volume</h3>
+        <div class="sparkline-wrap" id="dash-sparkline"></div>
+        <p class="sparkline-note">Based on customers' most recent purchase month — gets more accurate once real per-order history is tracked.</p>
+      </div>
+      <div class="settings-section">
         <h3>By customer type</h3>
         <div id="dash-tier-list"></div>
       </div>
       <div class="settings-section" style="margin-bottom:0;">
-        <h3>Top 5 by YTD total</h3>
+        <h3>Top 10 by YTD total</h3>
         <div id="dash-top-list"></div>
       </div>
     </div>
@@ -765,6 +853,39 @@
   <button id="lightbox-prev" class="lightbox-nav lightbox-prev" aria-label="Previous photo"><i class="fa-solid fa-chevron-left"></i></button>
   <img id="lightbox-img" src="" alt="" />
   <button id="lightbox-next" class="lightbox-nav lightbox-next" aria-label="Next photo"><i class="fa-solid fa-chevron-right"></i></button>
+</div>
+
+<!-- ============ FILTERS MODAL ============ -->
+<div id="filters-modal-backdrop" class="modal-backdrop">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-drag-handle"></div>
+    <div class="modal-head">
+      <h2>Filters</h2>
+      <button class="modal-close" id="filters-modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Purchase status</label>
+        <div class="segmented" id="purchase-filter-segmented">
+          <button type="button" data-value="all" class="active">All</button>
+          <button type="button" data-value="purchased">Purchased</button>
+          <button type="button" data-value="never">Never purchased</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="month-filter-select">Last purchase month</label>
+        <select id="month-filter-select"><option value="all">All months</option></select>
+      </div>
+      <div class="field">
+        <label for="city-filter-select">City / province</label>
+        <select id="city-filter-select"><option value="all">All cities</option></select>
+      </div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button id="filters-clear-btn" class="link-danger">Clear filters</button>
+      <button id="filters-modal-done" class="btn btn-primary">Apply</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -790,6 +911,18 @@ let editingId = null;
 let reorderMode = false;
 let searchDebounceTimer = null;
 let currentRole = 'admin';
+
+/* Filter state (persisted in-memory across re-renders) */
+let activePurchaseFilter = 'all'; // 'all' | 'purchased' | 'never'
+let activeMonthFilter = 'all';    // 'all' or 'YYYY-MM'
+let activeCityFilter = 'all';     // 'all' or exact province/city string
+
+/* Modal focus-trap / stacking + add/edit unsaved-changes guard */
+let openModalStack = [];
+let editSnapshot = null;
+
+/* CSV import: rows parsed and validated, pending confirmation */
+let csvImportRows = [];
 
 /* Gallery state for the add/edit modal.
    Each item: { id?: db id if already saved, file?: File if newly picked,
@@ -843,9 +976,6 @@ function applyRolePermissions() {
   const isLimited = currentRole === 'limited';
   document.body.classList.toggle('role-limited', isLimited);
   $('reorder-btn').style.display = isLimited ? 'none' : '';
-  $('settings-btn').style.display = isLimited ? 'none' : '';
-  $('m-reorder-btn').style.display = isLimited ? 'none' : '';
-  $('m-settings-btn').style.display = isLimited ? 'none' : '';
   $('manage-types-link').style.display = isLimited ? 'none' : '';
   renderGrid();
 }
@@ -919,13 +1049,13 @@ function capitalize(str) {
 $('manage-types-link').addEventListener('click', (e) => {
   e.preventDefault();
   renderTypesList();
-  $('types-modal-backdrop').classList.add('open');
+  openModalGeneric($('types-modal-backdrop'));
 });
 $('types-modal-close').addEventListener('click', closeTypesModal);
 $('types-modal-done').addEventListener('click', closeTypesModal);
 
 function closeTypesModal() {
-  $('types-modal-backdrop').classList.remove('open');
+  closeModalGeneric($('types-modal-backdrop'));
   // Refresh the add/edit form's dropdown in case types changed while it was open behind this.
   populateTierSelect($('f-tier').value);
 }
@@ -1005,23 +1135,88 @@ $('login-password').addEventListener('keydown', (e) => {
 });
 
 $('signout-btn').addEventListener('click', doSignOut);
-$('m-signout-btn').addEventListener('click', doSignOut);
 async function doSignOut() {
   await sb.auth.signOut();
   showLogin();
 }
 
-/* ---------- Overflow menu (mobile) ---------- */
-$('overflow-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  $('overflow-menu').classList.toggle('open');
+/* ---------- Generic modal open/close (stacking + focus trap + Escape) ---------- */
+function trapFocus(modalEl) {
+  const focusable = modalEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  const visible = Array.from(focusable).filter((el) => el.offsetParent !== null);
+  if (!visible.length) return;
+  const first = visible[0];
+  const last = visible[visible.length - 1];
+  first.focus();
+  function handler(e) {
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  }
+  modalEl._focusTrapHandler = handler;
+  modalEl.addEventListener('keydown', handler);
+}
+function releaseFocusTrap(modalEl) {
+  if (modalEl._focusTrapHandler) {
+    modalEl.removeEventListener('keydown', modalEl._focusTrapHandler);
+    modalEl._focusTrapHandler = null;
+  }
+}
+function openModalGeneric(el) {
+  el.classList.add('open');
+  openModalStack.push(el.id);
+  trapFocus(el);
+}
+function closeModalGeneric(el) {
+  el.classList.remove('open');
+  releaseFocusTrap(el);
+  openModalStack = openModalStack.filter((id) => id !== el.id);
+}
+const modalCloseFns = {
+  'modal-backdrop': closeModal,
+  'view-modal-backdrop': closeViewModal,
+  'types-modal-backdrop': closeTypesModal,
+  'settings-modal-backdrop': closeSettingsModal,
+  'dashboard-modal-backdrop': closeDashboard,
+  'filters-modal-backdrop': closeFiltersModal
+};
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if ($('lightbox-backdrop').classList.contains('open')) return; // handled separately
+  if (!openModalStack.length) return;
+  const topId = openModalStack[openModalStack.length - 1];
+  const fn = modalCloseFns[topId];
+  if (fn) fn();
 });
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.overflow-wrap')) $('overflow-menu').classList.remove('open');
+
+/* ---------- Collapsible header search ---------- */
+$('search-toggle-btn').addEventListener('click', () => {
+  const wrap = $('search-wrap');
+  const opening = !wrap.classList.contains('search-open');
+  wrap.classList.toggle('search-open');
+  if (opening) {
+    $('search-input').focus();
+  } else {
+    $('search-input').value = '';
+    renderGrid();
+  }
 });
-$('m-export-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); exportCsv(); });
-$('m-reorder-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); toggleReorder(); });
-$('m-settings-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); openSettings(); });
+$('search-input').addEventListener('blur', () => {
+  if (!$('search-input').value) {
+    $('search-wrap').classList.remove('search-open');
+  }
+});
+$('search-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    $('search-input').value = '';
+    $('search-wrap').classList.remove('search-open');
+    renderGrid();
+    $('search-input').blur();
+  }
+});
 
 /* ---------- Load & render customers (with skeletons + pull to refresh) ---------- */
 function renderSkeletons() {
@@ -1157,29 +1352,49 @@ async function shareContact(contact) {
   toast('Sharing is not supported on this device', 'error');
 }
 
-function renderGrid() {
+/* Combines search text, purchase status, month, and city filters with AND logic. */
+function getFilteredContacts() {
   const q = $('search-input').value.trim().toLowerCase();
   const qDigits = q.replace(/[^\d]/g, '');
-  const filtered = contacts.filter((c) => {
-    if (!q) return true;
-    const textMatch = (
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.company_name || '').toLowerCase().includes(q) ||
-      (c.notes || '').toLowerCase().includes(q) ||
-      (c.tier || '').toLowerCase().includes(q) ||
-      (c.province || '').toLowerCase().includes(q)
-    );
-    const phoneMatch = qDigits.length >= 3 && (c.phone || '').replace(/[^\d]/g, '').includes(qDigits);
-    return textMatch || phoneMatch;
+  return contacts.filter((c) => {
+    if (q) {
+      const textMatch = (
+        (c.name || '').toLowerCase().includes(q) ||
+        (c.company_name || '').toLowerCase().includes(q) ||
+        (c.notes || '').toLowerCase().includes(q) ||
+        (c.tier || '').toLowerCase().includes(q) ||
+        (c.province || '').toLowerCase().includes(q)
+      );
+      const phoneMatch = qDigits.length >= 3 && (c.phone || '').replace(/[^\d]/g, '').includes(qDigits);
+      if (!textMatch && !phoneMatch) return false;
+    }
+    if (activePurchaseFilter !== 'all') {
+      const hasPurchased = (Number(c.ytd_total) > 0) || !!c.last_purchase_date;
+      if (activePurchaseFilter === 'purchased' && !hasPurchased) return false;
+      if (activePurchaseFilter === 'never' && hasPurchased) return false;
+    }
+    if (activeMonthFilter !== 'all') {
+      const m = c.last_purchase_date ? c.last_purchase_date.slice(0, 7) : null;
+      if (m !== activeMonthFilter) return false;
+    }
+    if (activeCityFilter !== 'all') {
+      if ((c.province || '').trim() !== activeCityFilter) return false;
+    }
+    return true;
   });
+}
+
+function renderGrid() {
+  const filtered = getFilteredContacts();
 
   const grid = $('grid');
   grid.innerHTML = '';
 
   if (filtered.length === 0) {
+    const anyFilterActive = $('search-input').value.trim() || activePurchaseFilter !== 'all' || activeMonthFilter !== 'all' || activeCityFilter !== 'all';
     $('empty-state').textContent = contacts.length === 0
       ? 'No customers yet — add your first one.'
-      : 'No customers match your search.';
+      : (anyFilterActive ? 'No customers match your search or filters.' : 'No customers match your search.');
     $('empty-state').style.display = 'block';
     return;
   }
@@ -1350,16 +1565,22 @@ $('search-input').addEventListener('input', () => {
   searchDebounceTimer = setTimeout(renderGrid, 200);
 });
 
-/* ---------- Reorder mode ---------- */
-$('reorder-btn').addEventListener('click', toggleReorder);
+/* ---------- Reorder mode (triggered from Settings, exited via the on-grid banner) ---------- */
+$('reorder-btn').addEventListener('click', () => {
+  closeSettingsModal();
+  toggleReorder();
+});
+$('reorder-done-btn').addEventListener('click', toggleReorder);
 function toggleReorder() {
   reorderMode = !reorderMode;
   const label = reorderMode ? 'Done' : 'Reorder';
   $('reorder-btn').textContent = label;
   $('reorder-btn').classList.toggle('btn-primary', reorderMode);
   $('reorder-btn').classList.toggle('btn-ghost', !reorderMode);
+  $('reorder-banner').style.display = reorderMode ? 'flex' : 'none';
   if (reorderMode) {
     $('search-input').value = '';
+    $('search-wrap').classList.remove('search-open');
     $('search-input').disabled = true;
   } else {
     $('search-input').disabled = false;
@@ -1423,15 +1644,7 @@ function escapeCsv(val) {
 /* ---------- CSV export ---------- */
 $('export-btn').addEventListener('click', exportCsv);
 function exportCsv() {
-  const q = $('search-input').value.trim().toLowerCase();
-  const filtered = contacts.filter((c) => {
-    if (!q) return true;
-    return (
-      (c.name || '').toLowerCase().includes(q) ||
-      (c.company_name || '').toLowerCase().includes(q) ||
-      (c.notes || '').toLowerCase().includes(q)
-    );
-  });
+  const filtered = getFilteredContacts();
 
   const headers = ['Name', 'Company', 'Type', 'Phone', 'Telegram', 'WhatsApp', 'Facebook', 'Province', 'Notes', 'Map link', 'Last order date', 'YTD total'];
   const rows = filtered.map((c) => [
@@ -1462,6 +1675,139 @@ function exportCsv() {
   URL.revokeObjectURL(url);
   toast('CSV downloaded', 'success');
 }
+
+/* ---------- CSV import ---------- */
+function parseCsvLine(line) {
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
+      } else {
+        cur += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      result.push(cur); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+$('csv-import-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => parseCsvImport(String(ev.target.result || ''));
+  reader.onerror = () => toast('Could not read that file', 'error');
+  reader.readAsText(file);
+});
+
+function parseCsvImport(text) {
+  const rows = text.replace(/\r\n/g, '\n').replace(/^\uFEFF/, '').split('\n').filter((l) => l.trim() !== '');
+  if (rows.length < 2) {
+    toast('CSV has no data rows', 'error');
+    return;
+  }
+  const headers = parseCsvLine(rows[0]).map((h) => h.trim());
+  const expected = ['Name', 'Company', 'Type', 'Phone', 'Telegram', 'WhatsApp', 'Facebook', 'Province', 'Notes', 'Map link', 'Last order date', 'YTD total'];
+  const idx = {};
+  expected.forEach((h) => { idx[h] = headers.indexOf(h); });
+  if (idx['Name'] === -1) {
+    toast('CSV is missing a "Name" column', 'error');
+    return;
+  }
+
+  const valid = [];
+  const invalid = [];
+  for (let i = 1; i < rows.length; i++) {
+    const cols = parseCsvLine(rows[i]);
+    const get = (h) => (idx[h] > -1 ? (cols[idx[h]] || '').trim() : '');
+    const name = get('Name');
+    if (!name) { invalid.push({ line: i + 1, reason: 'Missing name' }); continue; }
+    const lastOrder = get('Last order date');
+    if (lastOrder && isNaN(Date.parse(lastOrder))) { invalid.push({ line: i + 1, name, reason: 'Malformed last order date' }); continue; }
+    const ytdRaw = get('YTD total');
+    const ytd = ytdRaw === '' ? null : Number(ytdRaw);
+    if (ytdRaw !== '' && isNaN(ytd)) { invalid.push({ line: i + 1, name, reason: 'Malformed YTD total' }); continue; }
+    valid.push({
+      name,
+      company_name: get('Company') || null,
+      tier: get('Type') || customerTypes[0],
+      phone: get('Phone') || null,
+      telegram_handle: get('Telegram') || null,
+      whatsapp_handle: get('WhatsApp') || null,
+      facebook_handle: get('Facebook') || null,
+      province: get('Province') || null,
+      notes: get('Notes') || null,
+      map_link: get('Map link') || null,
+      last_purchase_date: lastOrder || null,
+      ytd_total: ytd
+    });
+  }
+
+  csvImportRows = valid;
+  const preview = $('csv-import-preview');
+  preview.style.display = 'block';
+  preview.innerHTML = '';
+  valid.slice(0, 20).forEach((r) => {
+    const row = document.createElement('div');
+    row.className = 'csv-preview-row';
+    row.innerHTML = `<span>${escapeHtml(r.name)}</span><span>${escapeHtml(r.company_name || '')}</span>`;
+    preview.appendChild(row);
+  });
+  invalid.forEach((r) => {
+    const row = document.createElement('div');
+    row.className = 'csv-preview-row bad';
+    row.innerHTML = `<span>Row ${r.line}${r.name ? ' — ' + escapeHtml(r.name) : ''}</span><span>${escapeHtml(r.reason)}</span>`;
+    preview.appendChild(row);
+  });
+  if (valid.length > 20) {
+    const more = document.createElement('div');
+    more.className = 'csv-preview-row';
+    more.textContent = `…and ${valid.length - 20} more`;
+    preview.appendChild(more);
+  }
+
+  const summary = $('csv-import-summary');
+  summary.style.display = 'block';
+  summary.textContent = `${valid.length} customer${valid.length === 1 ? '' : 's'} will be added.`
+    + (invalid.length ? ` ${invalid.length} row${invalid.length === 1 ? '' : 's'} skipped (see above).` : '');
+
+  $('csv-import-confirm-btn').style.display = valid.length ? 'inline-flex' : 'none';
+}
+
+$('csv-import-confirm-btn').addEventListener('click', async () => {
+  if (!csvImportRows.length) return;
+  $('csv-import-confirm-btn').disabled = true;
+  $('csv-import-confirm-btn').textContent = 'Importing…';
+
+  const { error } = await sb.from('contacts').insert(csvImportRows);
+
+  $('csv-import-confirm-btn').disabled = false;
+  $('csv-import-confirm-btn').textContent = 'Import';
+
+  if (error) {
+    toast('Import failed: ' + error.message, 'error');
+    return;
+  }
+  toast(`${csvImportRows.length} customer${csvImportRows.length === 1 ? '' : 's'} imported`, 'success');
+  csvImportRows = [];
+  $('csv-import-preview').style.display = 'none';
+  $('csv-import-preview').innerHTML = '';
+  $('csv-import-summary').style.display = 'none';
+  $('csv-import-confirm-btn').style.display = 'none';
+  loadContacts();
+});
 
 /* ---------- Dark mode ---------- */
 const THEME_STORAGE_KEY = 'acacia-fabrics-theme';
@@ -1496,12 +1842,12 @@ $('dark-mode-toggle').addEventListener('change', (e) => {
 $('settings-btn').addEventListener('click', openSettings);
 function openSettings() {
   $('settings-msg').style.display = 'none';
-  $('settings-modal-backdrop').classList.add('open');
+  openModalGeneric($('settings-modal-backdrop'));
 }
 $('settings-modal-close').addEventListener('click', closeSettingsModal);
 $('settings-modal-done').addEventListener('click', closeSettingsModal);
 function closeSettingsModal() {
-  $('settings-modal-backdrop').classList.remove('open');
+  closeModalGeneric($('settings-modal-backdrop'));
 }
 
 $('reset-ytd-btn').addEventListener('click', async () => {
@@ -1535,19 +1881,67 @@ $('reset-ytd-btn').addEventListener('click', async () => {
 
 /* ---------- Dashboard ---------- */
 $('dashboard-btn').addEventListener('click', openDashboard);
-$('m-dashboard-btn').addEventListener('click', () => { $('overflow-menu').classList.remove('open'); openDashboard(); });
 $('dashboard-modal-close').addEventListener('click', closeDashboard);
 $('dashboard-modal-done').addEventListener('click', closeDashboard);
 
 function openDashboard() {
   renderDashboard();
-  $('dashboard-modal-backdrop').classList.add('open');
+  openModalGeneric($('dashboard-modal-backdrop'));
 }
 function closeDashboard() {
-  $('dashboard-modal-backdrop').classList.remove('open');
+  closeModalGeneric($('dashboard-modal-backdrop'));
+}
+
+function formatMonthLabel(m) {
+  const d = new Date(m + '-01T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+}
+
+/* Aggregates order activity by month, using each customer's most recent
+   last_purchase_date as a proxy for order volume. This is a stand-in until
+   real per-order history exists — once orders are tracked individually,
+   swap this for a query grouped by actual order dates instead of by
+   "customer's latest purchase month". */
+function renderSparkline() {
+  const counts = {};
+  contacts.forEach((c) => {
+    if (!c.last_purchase_date) return;
+    const m = c.last_purchase_date.slice(0, 7);
+    counts[m] = (counts[m] || 0) + 1;
+  });
+  const months = Object.keys(counts).sort();
+  const wrap = $('dash-sparkline');
+  if (!months.length) {
+    wrap.innerHTML = '<p class="hint" style="margin:0;">Not enough data yet.</p>';
+    return;
+  }
+  const recent = months.slice(-12);
+  const values = recent.map((m) => counts[m]);
+  const max = Math.max(...values, 1);
+  const w = 280, h = 56, pad = 4;
+  const stepX = recent.length > 1 ? (w - pad * 2) / (recent.length - 1) : 0;
+  const barW = recent.length > 1 ? Math.max(6, stepX * 0.6) : 30;
+
+  let bars = '';
+  recent.forEach((m, i) => {
+    const v = values[i];
+    const barH = Math.max(1, (v / max) * (h - pad * 2));
+    const centerX = recent.length > 1 ? (pad + i * stepX) : w / 2;
+    const x = centerX - barW / 2;
+    const y = h - pad - barH;
+    bars += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="var(--ochre)" rx="1"></rect>`;
+  });
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${bars}</svg>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:#8b8474;margin-top:4px;">
+      <span>${escapeHtml(formatMonthLabel(recent[0]))}</span><span>${escapeHtml(formatMonthLabel(recent[recent.length - 1]))}</span>
+    </div>
+  `;
 }
 
 function renderDashboard() {
+  renderSparkline();
   const total = contacts.length;
   const totalYtd = contacts.reduce((sum, c) => sum + (Number(c.ytd_total) || 0), 0);
   const avgYtd = total ? totalYtd / total : 0;
@@ -1588,17 +1982,17 @@ function renderDashboard() {
     });
   }
 
-  const top5 = contacts
+  const top10 = contacts
     .filter((c) => c.ytd_total !== null && c.ytd_total !== undefined && Number(c.ytd_total) > 0)
     .sort((a, b) => Number(b.ytd_total) - Number(a.ytd_total))
-    .slice(0, 5);
+    .slice(0, 10);
 
   const topList = $('dash-top-list');
   topList.innerHTML = '';
-  if (!top5.length) {
+  if (!top10.length) {
     topList.innerHTML = '<p class="hint" style="margin:0;">No YTD totals recorded yet.</p>';
   } else {
-    top5.forEach((c, i) => {
+    top10.forEach((c, i) => {
       const label = c.company_name || c.name;
       const row = document.createElement('div');
       row.className = 'dash-top-row';
@@ -1617,6 +2011,113 @@ function renderDashboard() {
     });
   }
 }
+
+/* ---------- Filters ---------- */
+$('filters-btn').addEventListener('click', openFiltersModal);
+$('filters-modal-close').addEventListener('click', closeFiltersModal);
+$('filters-modal-done').addEventListener('click', closeFiltersModal);
+$('filters-clear-btn').addEventListener('click', clearAllFilters);
+$('clear-filters-btn').addEventListener('click', clearAllFilters);
+
+function clearAllFilters() {
+  activePurchaseFilter = 'all';
+  activeMonthFilter = 'all';
+  activeCityFilter = 'all';
+  syncFiltersUI();
+  renderGrid();
+}
+
+function openFiltersModal() {
+  populateMonthFilter();
+  populateCityFilter();
+  syncFiltersUI();
+  openModalGeneric($('filters-modal-backdrop'));
+}
+function closeFiltersModal() {
+  closeModalGeneric($('filters-modal-backdrop'));
+}
+
+function populateMonthFilter() {
+  const months = new Set();
+  contacts.forEach((c) => {
+    if (c.last_purchase_date) months.add(c.last_purchase_date.slice(0, 7));
+  });
+  const sorted = Array.from(months).sort().reverse();
+  const sel = $('month-filter-select');
+  sel.innerHTML = '<option value="all">All months</option>';
+  sorted.forEach((m) => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    const d = new Date(m + '-01T00:00:00');
+    opt.textContent = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    sel.appendChild(opt);
+  });
+  if (!sorted.includes(activeMonthFilter)) activeMonthFilter = 'all';
+  sel.value = activeMonthFilter;
+}
+
+function populateCityFilter() {
+  const cities = new Set();
+  contacts.forEach((c) => {
+    if (c.province && c.province.trim()) cities.add(c.province.trim());
+  });
+  const sorted = Array.from(cities).sort();
+  const sel = $('city-filter-select');
+  sel.innerHTML = '<option value="all">All cities</option>';
+  sorted.forEach((city) => {
+    const opt = document.createElement('option');
+    opt.value = city;
+    opt.textContent = city;
+    sel.appendChild(opt);
+  });
+  if (!sorted.includes(activeCityFilter)) activeCityFilter = 'all';
+  sel.value = activeCityFilter;
+}
+
+$('purchase-filter-segmented').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-value]');
+  if (!btn) return;
+  activePurchaseFilter = btn.dataset.value;
+  syncFiltersUI();
+  renderGrid();
+});
+$('month-filter-select').addEventListener('change', (e) => {
+  activeMonthFilter = e.target.value;
+  syncFiltersUI();
+  renderGrid();
+});
+$('city-filter-select').addEventListener('change', (e) => {
+  activeCityFilter = e.target.value;
+  syncFiltersUI();
+  renderGrid();
+});
+
+function syncFiltersUI() {
+  $('purchase-filter-segmented').querySelectorAll('button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.value === activePurchaseFilter);
+  });
+  if ($('month-filter-select').value !== activeMonthFilter) $('month-filter-select').value = activeMonthFilter;
+  if ($('city-filter-select').value !== activeCityFilter) $('city-filter-select').value = activeCityFilter;
+
+  const anyActive = activePurchaseFilter !== 'all' || activeMonthFilter !== 'all' || activeCityFilter !== 'all';
+  $('clear-filters-btn').style.display = anyActive ? 'inline-flex' : 'none';
+
+  let count = 0;
+  if (activePurchaseFilter !== 'all') count++;
+  if (activeMonthFilter !== 'all') count++;
+  if (activeCityFilter !== 'all') count++;
+  const badge = $('filters-badge');
+  badge.style.display = count ? 'inline-flex' : 'none';
+  badge.textContent = count || '';
+}
+
+/* ---------- Backdrop-click-to-close for all standard modals ---------- */
+Object.keys(modalCloseFns).forEach((id) => {
+  $(id).addEventListener('click', (e) => {
+    if (e.target.id !== id) return;
+    modalCloseFns[id]();
+  });
+});
 
 /* ---------- Photo lightbox ---------- */
 let lightboxPhotos = [];
@@ -1742,18 +2243,17 @@ function openViewModal(contact) {
 
   $('view-share-btn').onclick = () => shareContact(contact);
 
-  $('view-modal-backdrop').classList.add('open');
+  openModalGeneric($('view-modal-backdrop'));
 }
 function closeViewModal() {
-  $('view-modal-backdrop').classList.remove('open');
+  closeModalGeneric($('view-modal-backdrop'));
 }
 $('view-modal-close').addEventListener('click', closeViewModal);
 
 /* ---------- Modal: add / edit ---------- */
-$('add-btn').addEventListener('click', () => openModal(null));
 $('fab-add').addEventListener('click', () => openModal(null));
-$('modal-close').addEventListener('click', closeModal);
-$('cancel-btn').addEventListener('click', closeModal);
+$('modal-close').addEventListener('click', () => closeModal());
+$('cancel-btn').addEventListener('click', () => closeModal());
 
 function openModal(contact) {
   editingId = contact ? contact.id : null;
@@ -1792,11 +2292,43 @@ function openModal(contact) {
   $('delete-btn').style.display = (contact && currentRole !== 'limited') ? 'inline-block' : 'none';
 
   renderGallery();
-  $('modal-backdrop').classList.add('open');
+  openModalGeneric($('modal-backdrop'));
+  editSnapshot = currentFormState();
 }
 
-function closeModal() {
-  $('modal-backdrop').classList.remove('open');
+/* Snapshot of every field + gallery state, used to detect unsaved changes. */
+function currentFormState() {
+  return JSON.stringify({
+    name: $('f-name').value,
+    company: $('f-company').value,
+    tier: $('f-tier').value,
+    phone: $('f-phone').value,
+    telegram: $('f-telegram').value,
+    whatsapp: $('f-whatsapp').value,
+    facebook: $('f-facebook').value,
+    province: $('f-province').value,
+    notes: $('f-notes').value,
+    maplink: $('f-maplink').value,
+    lastOrder: $('f-last-order').value,
+    ytd: $('f-ytd').value,
+    photos: galleryPhotos.map((p) => p.id || p.url),
+    coverIndex
+  });
+}
+function isFormDirty() {
+  if (editSnapshot === null) return false;
+  return currentFormState() !== editSnapshot;
+}
+
+/* Closes the add/edit modal. By default this guards against losing unsaved
+   changes (X button, Cancel, backdrop click); pass force=true to skip the
+   guard — used after a successful save or an already-confirmed delete. */
+function closeModal(force) {
+  if (!force && isFormDirty()) {
+    if (!confirm('Discard changes?')) return;
+  }
+  editSnapshot = null;
+  closeModalGeneric($('modal-backdrop'));
 }
 
 /* ---------- Gallery rendering ---------- */
@@ -1914,6 +2446,23 @@ function removeGalleryPhoto(i) {
   renderGallery();
 }
 
+/* Digits-only phone, for duplicate matching. */
+function normalizedPhone(p) {
+  return (p || '').replace(/[^\d]/g, '');
+}
+
+/* Duplicate check on ADD only (not edit): matches by normalized phone or
+   exact case-insensitive name. */
+function findDuplicateContact(payload) {
+  const phoneDigits = normalizedPhone(payload.phone);
+  const nameLower = (payload.name || '').trim().toLowerCase();
+  return contacts.find((c) => {
+    if (phoneDigits && normalizedPhone(c.phone) === phoneDigits) return true;
+    if (nameLower && (c.name || '').trim().toLowerCase() === nameLower) return true;
+    return false;
+  });
+}
+
 $('save-btn').addEventListener('click', async () => {
   const name = $('f-name').value.trim();
   $('form-error').style.display = 'none';
@@ -1923,9 +2472,6 @@ $('save-btn').addEventListener('click', async () => {
     $('form-error').style.display = 'block';
     return;
   }
-
-  $('save-btn').disabled = true;
-  $('save-btn').textContent = 'Saving…';
 
   const ytdRaw = $('f-ytd').value.trim();
   const payload = {
@@ -1942,6 +2488,24 @@ $('save-btn').addEventListener('click', async () => {
     last_purchase_date: $('f-last-order').value || null,
     ytd_total: ytdRaw === '' ? null : Number(ytdRaw)
   };
+
+  if (!editingId) {
+    const dup = findDuplicateContact(payload);
+    if (dup) {
+      const label = dup.company_name || dup.name;
+      const identifier = normalizedPhone(payload.phone) && normalizedPhone(dup.phone) === normalizedPhone(payload.phone)
+        ? 'phone number' : 'name';
+      const proceed = confirm(`A customer with this ${identifier} already exists: ${label}.\n\nClick OK to save this as a new customer anyway, or Cancel to review "${label}" instead.`);
+      if (!proceed) {
+        closeModal(true);
+        openModal(dup);
+        return;
+      }
+    }
+  }
+
+  $('save-btn').disabled = true;
+  $('save-btn').textContent = 'Saving…';
 
   let contactId = editingId;
   let saveError = null;
@@ -1977,7 +2541,7 @@ $('save-btn').addEventListener('click', async () => {
 
   $('save-btn').disabled = false;
   $('save-btn').textContent = 'Save';
-  closeModal();
+  closeModal(true);
   toast(wasEditing ? 'Customer updated' : 'Customer added', 'success');
   loadContacts();
 });
@@ -2020,7 +2584,7 @@ $('delete-btn').addEventListener('click', async () => {
   if (!editingId) return;
   if (!confirm('Delete this customer? This cannot be undone.')) return;
   const id = editingId;
-  closeModal();
+  closeModal(true);
   await deleteContact(id);
 });
 
