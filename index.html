@@ -379,6 +379,15 @@
   .settings-row p{margin:0;font-size:13px;color:#5a5545;}
   .settings-row p.label{font-size:14px;color:var(--charcoal);margin-bottom:2px;}
 
+  /* ---------- Toggle switch ---------- */
+  .toggle-switch{position:relative;display:inline-block;width:44px;height:26px;flex:0 0 auto;}
+  .toggle-switch input{opacity:0;width:0;height:0;position:absolute;}
+  .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--line-light);transition:background .2s ease;border-radius:26px;}
+  .toggle-slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:#fff;transition:transform .2s ease;border-radius:50%;box-shadow:0 1px 3px rgba(32,36,44,0.3);}
+  .toggle-switch input:checked + .toggle-slider{background:var(--ochre);}
+  .toggle-switch input:checked + .toggle-slider:before{transform:translateX(18px);}
+  .toggle-switch input:focus-visible + .toggle-slider{outline:2px solid var(--ochre-dark);outline-offset:2px;}
+
   /* ---------- View (read-only) modal ---------- */
   .view-hero{aspect-ratio:16/9;background:var(--ivory-2);overflow:hidden;position:relative;cursor:zoom-in;}
   .view-hero img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -681,6 +690,19 @@
       <button class="modal-close" id="settings-modal-close">&times;</button>
     </div>
     <div class="modal-body">
+      <div class="settings-section">
+        <h3>Appearance</h3>
+        <div class="settings-row">
+          <div>
+            <p class="label">Dark mode</p>
+            <p>Switch the interface to a darker color scheme.</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="dark-mode-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
       <div class="settings-section">
         <h3>Year-end</h3>
         <div class="settings-row">
@@ -1440,6 +1462,35 @@ function exportCsv() {
   URL.revokeObjectURL(url);
   toast('CSV downloaded', 'success');
 }
+
+/* ---------- Dark mode ---------- */
+const THEME_STORAGE_KEY = 'acacia-fabrics-theme';
+
+function getStoredTheme() {
+  try { return localStorage.getItem(THEME_STORAGE_KEY); }
+  catch (e) { return null; }
+}
+function setStoredTheme(theme) {
+  try { localStorage.setItem(THEME_STORAGE_KEY, theme); }
+  catch (e) { /* storage unavailable — theme still applies for this session */ }
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const toggle = $('dark-mode-toggle');
+  if (toggle) toggle.checked = theme === 'dark';
+}
+(function initTheme() {
+  let theme = getStoredTheme();
+  if (!theme) {
+    theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  applyTheme(theme);
+})();
+$('dark-mode-toggle').addEventListener('change', (e) => {
+  const theme = e.target.checked ? 'dark' : 'light';
+  applyTheme(theme);
+  setStoredTheme(theme);
+});
 
 /* ---------- Settings modal ---------- */
 $('settings-btn').addEventListener('click', openSettings);
