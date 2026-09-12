@@ -227,7 +227,7 @@
   .card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;}
   .footer-links{display:flex;gap:8px;}
   .icon-link{
-    width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;
     font-size:14px;color:#fff;flex:0 0 auto;text-decoration:none;
     background-image:linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0) 55%);
     background-blend-mode:overlay;
@@ -250,7 +250,7 @@
   /* ---------- Floating Add button (mobile) ---------- */
   #fab-add{
     display:flex;position:fixed;right:20px;bottom:24px;z-index:20;
-    width:56px;height:56px;border-radius:50%;
+    width:56px;height:56px;border-radius:16px;
     background:linear-gradient(180deg, #C99862 0%, var(--ochre) 55%, var(--ochre-dark) 100%);
     color:var(--charcoal);
     border:1px solid rgba(150,112,63,0.4);font-size:26px;cursor:pointer;
@@ -404,19 +404,19 @@
   /* ---------- Dashboard ---------- */
   .dash-stats-grid{display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:24px;}
   .dash-stat-box{background:var(--ivory-2);padding:14px 8px;text-align:center;}
-  .dash-stat-value{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 2px;color:var(--charcoal);}
+  .dash-stat-value{font-family:'Fraunces',serif;font-weight:600;font-size:19px;margin:0 0 2px;color:var(--text-1);}
   .dash-stat-label{font-size:10.5px;color:#8b8474;margin:0;text-transform:uppercase;letter-spacing:.03em;}
-  .dash-tier-row, .dash-top-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-light);font-size:14px;}
+  .dash-tier-row, .dash-top-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-light);font-size:14px;color:var(--text-1);}
   .dash-tier-row:first-of-type, .dash-top-row:first-of-type{border-top:none;}
   .dash-tier-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;}
   .dash-tier-name{flex:1;}
-  .dash-tier-count{color:#8b8474;font-size:13px;}
+  .dash-tier-count{color:var(--text-3);font-size:13px;}
   .dash-top-rank{
-    width:20px;height:20px;border-radius:50%;background:var(--ochre);color:var(--charcoal);
+    width:20px;height:20px;border-radius:6px;background:var(--ochre);color:var(--charcoal);
     font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
   }
   .dash-top-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .dash-top-amount{font-weight:500;color:var(--charcoal);flex:0 0 auto;}
+  .dash-top-amount{font-weight:500;color:var(--text-1);flex:0 0 auto;}
 
   /* ---------- Sparkline (dashboard) ---------- */
   .sparkline-wrap svg{width:100%;height:60px;display:block;}
@@ -481,13 +481,13 @@
   .lightbox-close{
     position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;
     width:44px;height:44px;background:rgba(255,255,255,0.12);color:#fff;border:none;
-    font-size:18px;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:18px;cursor:pointer;border-radius:12px;display:flex;align-items:center;justify-content:center;
   }
   .lightbox-close:hover{background:rgba(255,255,255,0.22);}
   .lightbox-nav{
     position:absolute;top:50%;transform:translateY(-50%);
     width:48px;height:48px;background:rgba(255,255,255,0.12);color:#fff;border:none;
-    font-size:16px;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:16px;cursor:pointer;border-radius:12px;display:flex;align-items:center;justify-content:center;
   }
   .lightbox-nav:hover{background:rgba(255,255,255,0.22);}
   .lightbox-prev{left:14px;}
@@ -1415,8 +1415,8 @@ function renderGrid() {
     else if (ytdLabel) orderLine = `${ytdLabel} YTD`;
 
     const iconLinks = [
-      c.phone ? `<a href="${escapeAttr(phoneTelUrl(c.phone))}" class="icon-link" style="background:var(--charcoal)" title="Call" onclick="event.stopPropagation()"><i class="fa-solid fa-phone"></i></a>` : '',
-      c.telegram_handle ? `<a href="${escapeAttr(telegramUrl(c.telegram_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#26A5E4" title="Telegram" onclick="event.stopPropagation()"><i class="fa-brands fa-telegram"></i></a>` : '',
+      c.phone ? `<a href="${escapeAttr(phoneTelUrl(c.phone))}" class="icon-link" style="background:var(--charcoal)" title="Call" onclick="event.stopPropagation()"><i class="fa-solid fa-phone-volume"></i></a>` : '',
+      c.telegram_handle ? `<a href="${escapeAttr(telegramUrl(c.telegram_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#26A5E4" title="Telegram" onclick="event.stopPropagation()"><i class="fa-brands fa-telegram-plane"></i></a>` : '',
       c.whatsapp_handle ? `<a href="${escapeAttr(whatsappUrl(c.whatsapp_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#25D366" title="WhatsApp" onclick="event.stopPropagation()"><i class="fa-brands fa-whatsapp"></i></a>` : '',
       c.facebook_handle ? `<a href="${escapeAttr(facebookUrl(c.facebook_handle))}" target="_blank" rel="noopener" class="icon-link" style="background:#1877F2" title="Facebook" onclick="event.stopPropagation()"><i class="fa-brands fa-facebook-f"></i></a>` : '',
       c.map_link ? `<a href="${escapeAttr(c.map_link)}" target="_blank" rel="noopener" class="icon-link" style="background:#8B6F47" title="Map" onclick="event.stopPropagation()"><i class="fa-solid fa-location-dot"></i></a>` : ''
