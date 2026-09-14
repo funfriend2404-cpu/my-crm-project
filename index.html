@@ -280,6 +280,12 @@
 
   .view-hero{aspect-ratio:16/9;background:var(--surface-2);overflow:hidden;position:relative;cursor:zoom-in;}
   .view-hero img{width:100%;height:100%;object-fit:cover;display:block;}
+  #lightbox-backdrop{
+    display:none;position:fixed;inset:0;background:var(--overlay-strong);
+    align-items:center;justify-content:center;padding:24px;z-index:60;cursor:zoom-out;
+  }
+  #lightbox-backdrop.open{display:flex;}
+  #lightbox-backdrop img{max-width:100%;max-height:100%;object-fit:contain;}
   .view-thumbs{display:flex;gap:8px;overflow-x:auto;padding:12px 22px 0;}
   .view-thumbs img{width:64px;height:64px;object-fit:cover;border-radius:4px;cursor:pointer;border:2px solid transparent;flex:0 0 auto;}
   .view-thumbs img.active{border-color:var(--ochre);}
@@ -302,8 +308,33 @@
     width:200px;padding:9px 12px;border:1px solid var(--border-1);opacity:1;margin-left:8px;
   }
 
-  .filters-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .filters-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;position:relative;}
   .btn-small{padding:7px 12px;font-size:13px;min-height:36px;}
+  .filter-panel{
+    display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:5;
+    background:var(--surface-1);border:1px solid var(--border-1);
+    padding:14px 16px;min-width:200px;box-shadow:0 8px 24px var(--glass-shadow);
+  }
+  .filter-panel.open{display:block;}
+  .filter-panel h4{margin:0 0 8px;font-size:12px;color:var(--text-3);text-transform:uppercase;letter-spacing:.03em;}
+  .filter-panel .filter-option{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13.5px;cursor:pointer;}
+  .filter-panel .filter-option input{margin:0;}
+  .filter-panel hr{border:none;border-top:1px solid var(--border-1);margin:10px 0;}
+
+  .photo-preview-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .photo-thumb{position:relative;width:64px;height:64px;border-radius:6px;overflow:hidden;border:2px solid transparent;cursor:pointer;flex:0 0 auto;}
+  .photo-thumb.cover{border-color:var(--ochre);}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .photo-thumb .remove-photo{
+    position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,0.6);
+    color:#fff;border:none;border-radius:50%;font-size:11px;line-height:1;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .photo-thumb .cover-badge{
+    position:absolute;bottom:2px;left:2px;background:var(--ochre);color:var(--charcoal);
+    font-size:9px;padding:1px 4px;border-radius:3px;font-weight:600;
+  }
+  .photo-hint{font-size:11.5px;color:var(--text-3);margin:6px 0 0;}
 
   @media (max-width:600px){
     header.topbar{padding:calc(10px + env(safe-area-inset-top)) 14px 10px;flex-wrap:nowrap;gap:8px;}
@@ -354,6 +385,7 @@
     <div class="filters-row" id="filters-row">
       <button id="filters-btn" class="btn btn-ghost btn-small"><i class="fa-solid fa-sliders"></i> Filters</button>
       <button id="clear-filters-btn" class="btn btn-ghost btn-small" style="display:none;">Clear filters</button>
+      <div id="filter-panel" class="filter-panel"></div>
     </div>
     <div id="empty-state" style="display:none;">No customers yet — add your first one.</div>
     <div id="grid" class="grid"></div>
@@ -363,6 +395,10 @@
 </div>
 
 <div id="toast-stack"></div>
+
+<div id="lightbox-backdrop">
+  <img id="lightbox-img" src="" alt="" />
+</div>
 
 <!-- ============ VIEW MODAL ============ -->
 <div id="view-modal-backdrop" class="modal-backdrop">
@@ -411,6 +447,12 @@
       <div class="field">
         <label for="f-name">Name *</label>
         <input id="f-name" type="text" />
+      </div>
+      <div class="field">
+        <label for="f-photos">Photos</label>
+        <input id="f-photos" type="file" accept="image/*" multiple />
+        <p class="photo-hint">Click a photo to make it the cover. Uploads are saved when you click Save.</p>
+        <div id="photo-preview-grid" class="photo-preview-grid"></div>
       </div>
       <div class="row-2">
         <div class="field">
@@ -557,6 +599,17 @@ let customerTypes = ['retail', 'wholesale', 'vip'];
 let editingId = null;
 let openModalStack = [];
 let pendingDeletions = {};
+let activeTierFilters = new Set();
+let restockOnlyFilter = false;
+
+// Photo upload state for the Add/Edit modal.
+// Assumes a public Supabase Storage bucket named 'contact-photos' — rename
+// PHOTO_BUCKET below if your project uses a different bucket name.
+const PHOTO_BUCKET = 'contact-photos';
+let modalExistingPhotos = [];   // photos already saved to this contact
+let modalRemovedPhotoIds = [];  // existing photo ids staged for deletion
+let modalPendingFiles = [];     // newly selected File objects, not yet uploaded
+let modalCoverKey = null;       // 'existing:<id>' or 'pending:<index>' — which photo is the cover
 
 const $ = (id) => document.getElementById(id);
 
@@ -640,6 +693,12 @@ const soundEngine = {
   }
 };
 
+function initSoundToggle() {
+  // Sync the checkbox with the persisted preference instead of the hardcoded
+  // `checked` attribute in the HTML, which could disagree with localStorage.
+  $('sound-toggle').checked = soundEngine.enabled;
+}
+
 function triggerHaptic(ms = 15) {
   if ('vibrate' in navigator) navigator.vibrate(ms);
 }
@@ -705,6 +764,69 @@ function populateTierSelect(selected) {
   if (selected) sel.value = selected;
 }
 
+/* ---------- Filter Panel ---------- */
+function buildFilterPanel() {
+  const panel = $('filter-panel');
+  panel.innerHTML = `
+    <h4>Customer type</h4>
+    ${customerTypes.map(type => `
+      <label class="filter-option">
+        <input type="checkbox" class="filter-tier" value="${escapeAttr(type)}" ${activeTierFilters.has(type) ? 'checked' : ''} />
+        ${escapeHtml(type.charAt(0).toUpperCase() + type.slice(1))}
+      </label>
+    `).join('')}
+    <hr />
+    <label class="filter-option">
+      <input type="checkbox" id="filter-restock" ${restockOnlyFilter ? 'checked' : ''} />
+      Restock due only
+    </label>
+  `;
+
+  panel.querySelectorAll('.filter-tier').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      soundEngine.play('click');
+      if (e.target.checked) activeTierFilters.add(e.target.value);
+      else activeTierFilters.delete(e.target.value);
+      updateClearFiltersVisibility();
+      renderGrid();
+    });
+  });
+  $('filter-restock').addEventListener('change', (e) => {
+    soundEngine.play('click');
+    restockOnlyFilter = e.target.checked;
+    updateClearFiltersVisibility();
+    renderGrid();
+  });
+}
+
+function updateClearFiltersVisibility() {
+  const hasFilters = activeTierFilters.size > 0 || restockOnlyFilter;
+  $('clear-filters-btn').style.display = hasFilters ? 'inline-flex' : 'none';
+}
+
+$('filters-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  soundEngine.play('click');
+  buildFilterPanel();
+  $('filter-panel').classList.toggle('open');
+});
+
+$('clear-filters-btn').addEventListener('click', () => {
+  soundEngine.play('click');
+  activeTierFilters.clear();
+  restockOnlyFilter = false;
+  updateClearFiltersVisibility();
+  buildFilterPanel();
+  renderGrid();
+});
+
+document.addEventListener('click', (e) => {
+  const panel = $('filter-panel');
+  if (panel.classList.contains('open') && !panel.contains(e.target) && e.target.id !== 'filters-btn') {
+    panel.classList.remove('open');
+  }
+});
+
 $('login-btn').addEventListener('click', async () => {
   soundEngine.play('click');
   const email = $('login-email').value.trim();
@@ -745,10 +867,14 @@ function renderGrid() {
   grid.innerHTML = '';
 
   const q = $('search-input').value.trim().toLowerCase();
-  const filtered = contacts.filter(c => 
-    (c.name || '').toLowerCase().includes(q) ||
-    (c.company_name || '').toLowerCase().includes(q)
-  );
+  const filtered = contacts.filter(c => {
+    const matchesSearch =
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.company_name || '').toLowerCase().includes(q);
+    const matchesTier = activeTierFilters.size === 0 || activeTierFilters.has(c.tier || 'retail');
+    const matchesRestock = !restockOnlyFilter || isRestockDue(c.last_purchase_date);
+    return matchesSearch && matchesTier && matchesRestock;
+  });
 
   if (!filtered.length) {
     $('empty-state').style.display = 'block';
@@ -789,8 +915,11 @@ function renderGrid() {
     `;
 
     // HTML5 Drag & Drop Reordering
+    // Use the contact's id (not its position in the possibly-filtered list)
+    // so a search filter can't cause the wrong contact to move.
+    wrap.dataset.contactId = c.id;
     wrap.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', index);
+      e.dataTransfer.setData('text/plain', c.id);
       wrap.classList.add('dragging');
     });
     wrap.addEventListener('dragend', () => {
@@ -801,13 +930,17 @@ function renderGrid() {
     });
     wrap.addEventListener('drop', (e) => {
       e.preventDefault();
-      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-      const toIndex = parseInt(wrap.dataset.index, 10);
-      if (fromIndex !== toIndex && !isNaN(fromIndex)) {
-        const movedItem = contacts.splice(fromIndex, 1)[0];
-        contacts.splice(toIndex, 0, movedItem);
-        soundEngine.play('swipe');
-        renderGrid();
+      const draggedId = e.dataTransfer.getData('text/plain');
+      const targetId = wrap.dataset.contactId;
+      if (draggedId && draggedId !== targetId) {
+        const fromIndex = contacts.findIndex(x => String(x.id) === String(draggedId));
+        const toIndex = contacts.findIndex(x => String(x.id) === String(targetId));
+        if (fromIndex !== -1 && toIndex !== -1) {
+          const movedItem = contacts.splice(fromIndex, 1)[0];
+          contacts.splice(toIndex, 0, movedItem);
+          soundEngine.play('swipe');
+          renderGrid();
+        }
       }
     });
 
@@ -852,7 +985,10 @@ function showUndoToast(contact) {
 
   $(`undo-btn-${contact.id}`).addEventListener('click', () => {
     clearTimeout(pendingDeletions[contact.id].timeoutId);
-    contacts.splice(pendingDeletions[contact.id].backupIndex, 0, contact);
+    // Clamp in case other deletions/reorders happened since this one was
+    // recorded, so we never splice past the current array length.
+    const restoreAt = Math.min(pendingDeletions[contact.id].backupIndex, contacts.length);
+    contacts.splice(restoreAt, 0, contact);
     delete pendingDeletions[contact.id];
     renderGrid();
     soundEngine.play('click');
@@ -979,8 +1115,123 @@ function openViewModal(c) {
   openModalGeneric($('view-modal-backdrop'));
 }
 
+/* ---------- Photo Upload (Add/Edit modal) ---------- */
+function renderPhotoPreview() {
+  const grid = $('photo-preview-grid');
+  grid.innerHTML = '';
+
+  const remainingExisting = modalExistingPhotos.filter(p => !modalRemovedPhotoIds.includes(p.id));
+
+  remainingExisting.forEach((p) => {
+    const key = 'existing:' + p.id;
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb' + (modalCoverKey === key ? ' cover' : '');
+    thumb.innerHTML = `
+      <img src="${escapeAttr(p.public_url)}" alt="" />
+      ${modalCoverKey === key ? '<span class="cover-badge">Cover</span>' : ''}
+      <button type="button" class="remove-photo" aria-label="Remove photo">&times;</button>
+    `;
+    thumb.addEventListener('click', (e) => {
+      if (e.target.closest('.remove-photo')) return;
+      modalCoverKey = key;
+      renderPhotoPreview();
+    });
+    thumb.querySelector('.remove-photo').addEventListener('click', (e) => {
+      e.stopPropagation();
+      modalRemovedPhotoIds.push(p.id);
+      if (modalCoverKey === key) modalCoverKey = null;
+      renderPhotoPreview();
+    });
+    grid.appendChild(thumb);
+  });
+
+  modalPendingFiles.forEach((file, i) => {
+    const key = 'pending:' + i;
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb' + (modalCoverKey === key ? ' cover' : '');
+    const url = URL.createObjectURL(file);
+    thumb.innerHTML = `
+      <img src="${url}" alt="" />
+      ${modalCoverKey === key ? '<span class="cover-badge">Cover</span>' : ''}
+      <button type="button" class="remove-photo" aria-label="Remove photo">&times;</button>
+    `;
+    thumb.addEventListener('click', (e) => {
+      if (e.target.closest('.remove-photo')) return;
+      modalCoverKey = key;
+      renderPhotoPreview();
+    });
+    thumb.querySelector('.remove-photo').addEventListener('click', (e) => {
+      e.stopPropagation();
+      modalPendingFiles.splice(i, 1);
+      if (modalCoverKey === key) modalCoverKey = null;
+      renderPhotoPreview();
+    });
+    grid.appendChild(thumb);
+  });
+
+  // Default a cover if nothing is currently selected but photos exist.
+  if (!modalCoverKey) {
+    if (remainingExisting.length) modalCoverKey = 'existing:' + remainingExisting[0].id;
+    else if (modalPendingFiles.length) modalCoverKey = 'pending:0';
+  }
+}
+
+$('f-photos').addEventListener('change', (e) => {
+  modalPendingFiles.push(...Array.from(e.target.files));
+  e.target.value = '';
+  renderPhotoPreview();
+});
+
+async function persistPhotoChanges(contactId) {
+  // Delete photos the user removed.
+  if (modalRemovedPhotoIds.length) {
+    await sb.from('contact_photos').delete().in('id', modalRemovedPhotoIds);
+  }
+
+  // Upload newly added files.
+  const uploadedRows = [];
+  for (const file of modalPendingFiles) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${contactId}/${Date.now()}-${safeName}`;
+    const { error: uploadError } = await sb.storage.from(PHOTO_BUCKET).upload(path, file);
+    if (uploadError) {
+      toast(`Could not upload ${file.name}`, 'error');
+      continue;
+    }
+    const { data: urlData } = sb.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+    uploadedRows.push({ contact_id: contactId, public_url: urlData.publicUrl, is_cover: false });
+  }
+  if (uploadedRows.length) {
+    const { data: inserted, error: insertError } = await sb.from('contact_photos').insert(uploadedRows).select();
+    if (insertError) toast('Could not save uploaded photos', 'error');
+  }
+
+  // Resolve which photo should be the cover and clear the flag on the rest.
+  const { data: allPhotos } = await sb.from('contact_photos').select('id, public_url, created_at').eq('contact_id', contactId).order('created_at', { ascending: true });
+  if (allPhotos && allPhotos.length) {
+    let coverId = null;
+    if (modalCoverKey && modalCoverKey.startsWith('existing:')) {
+      const wantedId = modalCoverKey.split(':')[1];
+      if (allPhotos.some(p => String(p.id) === String(wantedId))) coverId = wantedId;
+    }
+    if (!coverId) coverId = allPhotos[0].id; // fall back to the earliest photo
+    await sb.from('contact_photos').update({ is_cover: true }).eq('id', coverId);
+    await sb.from('contact_photos').update({ is_cover: false }).eq('contact_id', contactId).neq('id', coverId);
+  }
+}
+
+function resetPhotoModalState(contact) {
+  modalExistingPhotos = contact ? (contact.contact_photos || []).slice() : [];
+  modalRemovedPhotoIds = [];
+  modalPendingFiles = [];
+  const existingCover = modalExistingPhotos.find(p => p.is_cover) || modalExistingPhotos[0];
+  modalCoverKey = existingCover ? 'existing:' + existingCover.id : null;
+  renderPhotoPreview();
+}
+
 function openModal(contact) {
   editingId = contact ? contact.id : null;
+  resetPhotoModalState(contact);
   $('modal-title').textContent = contact ? 'Edit customer' : 'Add customer';
   $('f-name').value = contact ? contact.name || '' : '';
   $('f-company').value = contact ? contact.company_name || '' : '';
@@ -1023,10 +1274,21 @@ $('save-btn').addEventListener('click', async () => {
     map_url: $('f-maplink').value.trim() || null
   };
 
+  let contactId = editingId;
   if (editingId) {
     await sb.from('contacts').update(payload).eq('id', editingId);
   } else {
-    await sb.from('contacts').insert(payload);
+    const { data: inserted, error: insertError } = await sb.from('contacts').insert(payload).select().single();
+    if (insertError) {
+      soundEngine.play('error');
+      toast('Could not save customer', 'error');
+      return;
+    }
+    contactId = inserted.id;
+  }
+
+  if (contactId && (modalRemovedPhotoIds.length || modalPendingFiles.length || modalCoverKey)) {
+    await persistPhotoChanges(contactId);
   }
 
   soundEngine.play('success');
@@ -1107,6 +1369,16 @@ $('settings-btn').addEventListener('click', () => { soundEngine.play('click'); o
 $('settings-modal-close').addEventListener('click', () => closeModalGeneric($('settings-modal-backdrop')));
 $('settings-modal-done').addEventListener('click', () => closeModalGeneric($('settings-modal-backdrop')));
 $('view-modal-close').addEventListener('click', () => closeModalGeneric($('view-modal-backdrop')));
+$('view-hero').addEventListener('click', () => {
+  const src = $('view-hero-img').src;
+  if (!src) return;
+  soundEngine.play('click');
+  $('lightbox-img').src = src;
+  $('lightbox-backdrop').classList.add('open');
+});
+$('lightbox-backdrop').addEventListener('click', () => {
+  $('lightbox-backdrop').classList.remove('open');
+});
 $('modal-close').addEventListener('click', () => closeModalGeneric($('modal-backdrop')));
 $('cancel-btn').addEventListener('click', () => closeModalGeneric($('modal-backdrop')));
 $('fab-add').addEventListener('click', () => { soundEngine.play('click'); openModal(null); });
@@ -1120,6 +1392,7 @@ $('search-input').addEventListener('input', renderGrid);
 
 // Initialize Dark Mode and Check Session
 initDarkMode();
+initSoundToggle();
 checkSession();
 </script>
 </body>
